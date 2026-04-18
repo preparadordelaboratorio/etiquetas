@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generador de Etiquetas SGA/GHS</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+:root{--bg:#0e0f13;--surface:#16171d;--surface2:#1e1f27;--surface3:#262730;--border:#2e3040;--text:#e8e9ed;--text2:#9a9cb0;--text3:#6b6d82;--accent:#4a6cf7;--accent-glow:rgba(74,108,247,.15);--red:#e74c4c;--red-glow:rgba(231,76,76,.12);--amber:#f0a030;--green:#34c759;--radius:12px;--radius-sm:8px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 0%,rgba(74,108,247,.06) 0%,transparent 60%),radial-gradient(ellipse at 80% 100%,rgba(231,76,76,.04) 0%,transparent 60%);pointer-events:none;z-index:0}
+.header{position:sticky;top:0;z-index:100;background:rgba(14,15,19,.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between}
+.header-brand{display:flex;align-items:center;gap:14px}
+.header-logo{width:38px;height:38px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;position:relative;overflow:hidden}
+.header-logo::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.2) 0%,transparent 50%)}
+.header h1{font-size:17px;font-weight:600;letter-spacing:-.3px}
+.header h1 span{color:var(--text2);font-weight:400}
+.header-actions{display:flex;gap:10px}
+.app{position:relative;z-index:1;display:grid;grid-template-columns:1fr 1fr;gap:0;min-height:calc(100vh - 67px)}
+.panel{padding:24px;overflow-y:auto;max-height:calc(100vh - 67px)}
+.panel-form{border-right:1px solid var(--border)}
+.panel-preview{background:var(--surface);display:flex;flex-direction:column}
+.section{margin-bottom:22px;animation:fadeIn .35s ease both}
+.section:nth-child(2){animation-delay:.04s}.section:nth-child(3){animation-delay:.08s}.section:nth-child(4){animation-delay:.12s}.section:nth-child(5){animation-delay:.16s}.section:nth-child(6){animation-delay:.2s}.section:nth-child(7){animation-delay:.24s}.section:nth-child(8){animation-delay:.28s}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.section-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.section-number{width:24px;height:24px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.section-title{font-size:13px;font-weight:600;letter-spacing:.3px;text-transform:uppercase;color:var(--text2)}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:11px;font-weight:500;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+.field input,.field textarea,.field select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;transition:border-color .2s,box-shadow .2s;outline:none}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.field textarea{resize:vertical;min-height:60px}
+.field select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%239a9cb0'%3E%3Cpath d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.picto-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.picto-item{position:relative;background:var(--surface2);border:2px solid var(--border);border-radius:var(--radius-sm);padding:8px;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:4px;user-select:none}
+.picto-item:hover{border-color:var(--text3);background:var(--surface3)}
+.picto-item.selected{border-color:var(--red);background:var(--red-glow)}
+.picto-item svg{width:46px;height:46px}
+.picto-item img{width:46px;height:46px;object-fit:contain}
+.picto-item .picto-label{font-size:9px;font-weight:500;color:var(--text2);text-align:center;line-height:1.2}
+.picto-item .picto-check{position:absolute;top:3px;right:3px;width:16px;height:16px;background:var(--red);border-radius:50%;display:none;align-items:center;justify-content:center}
+.picto-item.selected .picto-check{display:flex}
+.phrase-search-container{position:relative}
+.phrase-search-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 12px 9px 34px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color .2s,box-shadow .2s}
+.phrase-search-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.phrase-search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none}
+.phrase-dropdown{position:absolute;top:100%;left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);max-height:220px;overflow-y:auto;z-index:50;display:none;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.phrase-dropdown.open{display:block}
+.phrase-option{padding:8px 12px;cursor:pointer;transition:background .15s;display:flex;align-items:baseline;gap:8px;border-bottom:1px solid rgba(46,48,64,.5)}
+.phrase-option:last-child{border-bottom:none}
+.phrase-option:hover{background:var(--surface3)}
+.phrase-option-code{font-family:'Space Mono',monospace;font-size:11px;font-weight:700;white-space:nowrap;min-width:42px}
+.phrase-option-code.h-code{color:var(--red)}
+.phrase-option-code.p-code{color:var(--accent)}
+.phrase-option-text{font-size:12px;color:var(--text2);line-height:1.3}
+.phrase-category-header{padding:5px 12px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);background:rgba(14,15,19,.5);position:sticky;top:0}
+.selected-phrases{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;min-height:28px}
+.phrase-tag{display:inline-flex;align-items:center;gap:4px;padding:4px 8px 4px 10px;border-radius:6px;font-size:11px;font-weight:500;line-height:1.3;max-width:100%;animation:tagIn .2s ease}
+@keyframes tagIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
+.phrase-tag.h-tag{background:var(--red-glow);border:1px solid rgba(231,76,76,.3);color:#f08080}
+.phrase-tag.p-tag{background:var(--accent-glow);border:1px solid rgba(74,108,247,.3);color:#8aa4f8}
+.phrase-tag-code{font-family:'Space Mono',monospace;font-weight:700;font-size:10px}
+.phrase-tag-text{font-size:10px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px}
+.phrase-tag-remove{width:16px;height:16px;background:none;border:none;color:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:3px;opacity:.6;transition:opacity .15s;flex-shrink:0}
+.phrase-tag-remove:hover{opacity:1;background:rgba(255,255,255,.1)}
+.no-phrases{font-size:11px;color:var(--text3);padding:4px 0;font-style:italic}
+.chem-eq-container{position:relative}
+.chem-eq-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 12px;color:var(--text);font-family:'Space Mono',monospace;font-size:14px;outline:none;transition:border-color .2s,box-shadow .2s}
+.chem-eq-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.chem-eq-preview{margin-top:6px;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:16px;color:var(--text);min-height:32px;display:flex;align-items:center}
+.chem-eq-preview sub{font-size:0.7em;vertical-align:sub}
+.chem-eq-preview sup{font-size:0.7em;vertical-align:super}
+.chem-eq-hint{font-size:10px;color:var(--text3);margin-top:4px;line-height:1.4}
+.toggle-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.toggle-label{font-size:11px;color:var(--text2);cursor:pointer;user-select:none}
+.toggle-switch{position:relative;width:36px;height:20px;background:var(--surface3);border-radius:10px;cursor:pointer;transition:background .2s;flex-shrink:0}
+.toggle-switch.active{background:var(--accent)}
+.toggle-switch::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .2s}
+.toggle-switch.active::after{transform:translateX(16px)}
+.phrase-mode-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.phrase-mode-btn{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:4px 10px;font-size:10px;font-weight:500;color:var(--text2);cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
+.phrase-mode-btn:hover{border-color:var(--text3);color:var(--text)}
+.phrase-mode-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.size-presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.size-preset{background:var(--surface2);border:1px solid var(--border);border-radius:18px;padding:5px 12px;font-size:11px;font-weight:500;color:var(--text2);cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
+.size-preset:hover{border-color:var(--text3);color:var(--text)}
+.size-preset.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 18px;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;border:none;outline:none}
+.btn-primary{background:var(--accent);color:#fff;box-shadow:0 2px 12px rgba(74,108,247,.3)}
+.btn-primary:hover{background:#5a7af8;transform:translateY(-1px)}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{background:var(--surface3)}
+.btn-example{background:rgba(52,199,89,.12);color:var(--green);border:1px solid rgba(52,199,89,.25)}
+.btn-example:hover{background:rgba(52,199,89,.2)}
+.preview-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-shrink:0}
+.preview-title{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;color:var(--text2)}
+.preview-zoom{display:flex;align-items:center;gap:6px}
+.preview-zoom button{width:28px;height:28px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;transition:all .15s;font-family:inherit}
+.preview-zoom button:hover{background:var(--surface3);color:var(--text)}
+.preview-zoom span{font-size:11px;color:var(--text3);font-family:'Space Mono',monospace;min-width:36px;text-align:center}
+.preview-container{flex:1;display:flex;align-items:center;justify-content:center;overflow:auto;padding:20px;background:repeating-conic-gradient(var(--surface2) 0% 25%,var(--surface) 0% 50%) 0 0/20px 20px;border-radius:var(--radius);border:1px solid var(--border)}
+.label-wrapper{transition:transform .3s ease;transform-origin:center center}
+.label{background:#fff;color:#000;border:2.5px solid #cc0000;font-family:'DM Sans',Arial,Helvetica,sans-serif;display:flex;flex-direction:column;overflow:hidden;position:relative}
+.label.label-classic{padding:3mm}
+.label.label-compact{padding:0}
+.label-institution{text-align:center;font-weight:700;color:#000;border-bottom:1.5px solid #cc0000;padding-bottom:1mm;margin-bottom:1.5mm;text-transform:uppercase;letter-spacing:.5px}
+.label-top{display:flex;justify-content:space-between;align-items:flex-start;gap:2mm;margin-bottom:1.5mm}
+.label-product-name{font-weight:700;color:#000;line-height:1.15;flex:1}
+.label-signal-word{font-weight:700;text-transform:uppercase;text-align:right;white-space:nowrap}
+.signal-peligro{color:#cc0000}.signal-atencion{color:#e68a00}
+.label-pictograms{display:flex;flex-wrap:wrap;gap:1mm;justify-content:center;margin-bottom:1.5mm;padding:1mm 0;border-top:1px solid #ccc;border-bottom:1px solid #ccc}
+.label-pictograms img{flex-shrink:0}
+.label-body{flex:1;display:flex;flex-direction:column;gap:1mm;overflow:hidden}
+.label-section-title{font-weight:700;text-transform:uppercase;color:#000;border-bottom:1px solid #000;padding-bottom:.3mm;margin-bottom:.3mm}
+.label-text{color:#222;line-height:1.25}
+.label-footer{margin-top:auto;padding-top:1mm;border-top:1px solid #ccc}
+.label-supplier{color:#333;line-height:1.2}
+@media print{body{background:#fff}body::before{display:none}.header,.panel-form,.preview-header{display:none!important}.app{display:block}.panel-preview{background:none;padding:0;max-height:none;overflow:visible}.preview-container{background:none!important;border:none;padding:0;display:block}.label-wrapper{transform:none!important;display:flex!important;flex-wrap:wrap!important;gap:3mm!important;align-content:flex-start!important;align-items:flex-start!important}.label{border:2.5px solid #cc0000!important;page-break-inside:avoid;break-inside:avoid}@page{margin:5mm}}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}::-webkit-scrollbar-thumb:hover{background:var(--text3)}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--green);color:#fff;padding:12px 20px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;z-index:200;opacity:0;transform:translateY(10px);transition:all .3s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+.btn-save{background:rgba(74,108,247,.12);color:var(--accent);border:1px solid rgba(74,108,247,.25)}
+.btn-save:hover{background:rgba(74,108,247,.22)}
+.btn-export{background:rgba(240,160,48,.12);color:var(--amber);border:1px solid rgba(240,160,48,.25)}
+.btn-export:hover{background:rgba(240,160,48,.22)}
+.btn-help{background:rgba(154,156,176,.1);color:var(--text2);border:1px solid var(--border);min-width:34px;padding:9px 10px}
+.btn-help:hover{background:var(--surface3);color:var(--text)}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:300;display:none;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);max-width:640px;width:90%;max-height:80vh;overflow-y:auto;padding:28px;position:relative;animation:fadeIn .25s ease}
+.modal h2{font-size:18px;font-weight:700;margin-bottom:16px;color:var(--text)}
+.modal h3{font-size:13px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 8px}
+.modal p,.modal li{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:6px}
+.modal ul{padding-left:18px;margin-bottom:10px}
+.modal kbd{background:var(--surface3);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:11px;font-family:'Space Mono',monospace;color:var(--text)}
+.modal-close{position:absolute;top:14px;right:14px;width:30px;height:30px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .15s}
+.modal-close:hover{background:var(--surface3);color:var(--text)}
+.paste-area{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--text);font-family:'Space Mono',monospace;font-size:11px;resize:vertical;min-height:36px;outline:none;transition:border-color .2s,box-shadow .2s;margin-top:6px}
+.paste-area:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.paste-hint{font-size:10px;color:var(--text3);margin-top:3px}
+.header-actions{display:flex;gap:8px;flex-wrap:wrap}
+.section-hint{font-size:11px;color:var(--text3);line-height:1.5;margin-bottom:10px;padding:8px 10px;background:var(--surface2);border-left:3px solid var(--accent);border-radius:0 var(--radius-sm) var(--radius-sm) 0}
+.section-hint strong{color:var(--text2)}
+.section-hint a{color:var(--accent);text-decoration:underline;cursor:pointer}
+.welcome-banner{background:linear-gradient(135deg,rgba(74,108,247,.08),rgba(52,199,89,.06));border:1px solid rgba(74,108,247,.2);border-radius:var(--radius);padding:16px 18px;margin-bottom:20px;animation:fadeIn .5s ease}
+.welcome-banner h2{font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px}
+.welcome-banner p{font-size:12px;color:var(--text2);line-height:1.55;margin-bottom:4px}
+.welcome-banner .welcome-tip{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--accent);font-weight:600;margin-top:4px;cursor:pointer}
+.welcome-banner .welcome-tip:hover{text-decoration:underline}
+.welcome-dismiss{background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;float:right;padding:2px 6px}
+.welcome-dismiss:hover{color:var(--text)}
+.modal .step-box{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:10px}
+.modal .step-box h4{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.modal .step-box h4 .step-num{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:var(--accent);color:#fff;border-radius:6px;font-size:11px;font-weight:700;flex-shrink:0}
+.modal .step-box p{font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:2px}
+.modal .tip-box{background:rgba(52,199,89,.08);border:1px solid rgba(52,199,89,.2);border-radius:var(--radius-sm);padding:10px 14px;margin:10px 0;font-size:12px;color:var(--text2);line-height:1.5}
+.modal .tip-box strong{color:var(--green)}
+.modal .warn-box{background:rgba(240,160,48,.08);border:1px solid rgba(240,160,48,.2);border-radius:var(--radius-sm);padding:10px 14px;margin:10px 0;font-size:12px;color:var(--text2);line-height:1.5}
+.modal .warn-box strong{color:var(--amber)}
+.modal .example-block{background:var(--surface3);border-radius:var(--radius-sm);padding:10px 14px;margin:8px 0;font-family:'Space Mono',monospace;font-size:12px;color:var(--text);line-height:1.5}
+@media(max-width:1100px){.app{grid-template-columns:1fr}.panel{max-height:none}.panel-form{border-right:none;border-bottom:1px solid var(--border)}.panel-preview{min-height:500px}}
+@media(max-width:600px){.header{padding:10px 14px;flex-wrap:wrap;gap:8px}.panel{padding:14px}.picto-grid{grid-template-columns:repeat(3,1fr)}.row,.row-3{grid-template-columns:1fr}}
+.size-editor{display:flex;flex-direction:column;gap:6px}
+.size-editor-row{display:grid;grid-template-columns:140px 1fr 68px;align-items:center;gap:8px}
+.size-editor-label{font-size:11px;color:var(--text2);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.size-editor-range{-webkit-appearance:none;appearance:none;width:100%;height:4px;background:var(--surface3);border-radius:2px;outline:none;cursor:pointer}
+.size-editor-range::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;border-radius:50%;background:var(--accent);cursor:pointer;border:none;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.size-editor-range::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--accent);cursor:pointer;border:none}
+.size-editor-val{display:flex;align-items:center;gap:2px}
+.size-editor-num{width:48px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 4px;color:var(--text);font-family:'Space Mono',monospace;font-size:11px;text-align:center;outline:none;-moz-appearance:textfield}
+.size-editor-num::-webkit-inner-spin-button,.size-editor-num::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.size-editor-num:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-glow)}
+.size-editor-pct{font-size:10px;color:var(--text3);min-width:12px}
+.size-editor-divider{height:1px;background:var(--border);margin:4px 0}
+.size-editor-group{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;font-weight:600;padding:4px 0 2px}
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="header-brand">
+    <div class="header-logo">&#x2B25;</div>
+    <h1>Etiquetas SGA <span>/ GHS</span></h1>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-help" onclick="openHelp()" title="Ayuda">?</button>
+    <button class="btn btn-example" onclick="loadExample()">&#x2726; Ejemplo</button>
+    <button class="btn btn-save" onclick="saveImage()">&#x1F4F7; Imagen</button>
+    <button class="btn btn-export" onclick="exportExcel()">&#x1F4CB; Excel</button>
+    <button class="btn btn-secondary" onclick="saveProject()">&#x1F4BE; Guardar</button>
+    <button class="btn btn-secondary" onclick="document.getElementById('loadFileInput').click()">&#x1F4C2; Cargar</button>
+    <input type="file" id="loadFileInput" accept=".json" style="display:none" onchange="loadProjectFile(event)">
+    <button class="btn btn-secondary" onclick="resetForm()">Limpiar</button>
+    <button class="btn btn-primary" onclick="printLabel()">&#x2399; Imprimir</button>
+  </div>
+</header>
+<div class="app">
+  <div class="panel panel-form">
+    <div class="welcome-banner" id="welcomeBanner">
+      <button class="welcome-dismiss" onclick="document.getElementById('welcomeBanner').style.display='none';localStorage.setItem('sga_welcome_dismissed','1')">Cerrar</button>
+      <h2>Bienvenido al Generador de Etiquetas SGA/GHS</h2>
+      <p>Este sistema te permite crear <strong>etiquetas de seguridad para productos quimicos</strong> segun el Sistema Globalmente Armonizado (SGA/GHS), el estandar internacional para la comunicacion de peligros.</p>
+      <p>Completa los campos de arriba hacia abajo. La etiqueta se actualiza en tiempo real en el panel derecho. Cuando termines, podes imprimir, guardar como imagen o exportar a Excel.</p>
+      <span class="welcome-tip" onclick="openHelp()">Ver guia completa paso a paso &rarr;</span>
+    </div>
+    <div class="section">
+      <div class="section-header"><div class="section-number">1</div><div class="section-title">Institucion</div></div>
+      <div class="section-hint">El nombre de tu colegio o laboratorio que aparecera como <strong>encabezado</strong> en la parte superior de la etiqueta. Opcionalmente podés agregar un subtítulo debajo.</div>
+      <div class="field">
+        <label>Nombre de la institucion</label>
+        <input type="text" id="institutionName" placeholder="Ej: Colegio Hans Christian Andersen" oninput="updatePreview()">
+      </div>
+      <div class="field">
+        <label>Subtítulo (opcional)</label>
+        <input type="text" id="institutionSubtitle" placeholder="Ej: Laboratorio de Química, Departamento de Ciencias..." oninput="updatePreview()">
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><div class="section-number">2</div><div class="section-title">Identificacion del Producto</div></div>
+      <div class="section-hint">Ingresa el <strong>nombre comercial o cientifico</strong> del producto quimico, su formula, concentracion y opcionalmente el numero CAS (identificador universal del producto).</div>
+      <div class="field"><label>Nombre del producto</label><input type="text" id="productName" placeholder="Ej: Acido Clorhidrico, Etanol, Hipoclorito de Sodio..." oninput="updatePreview()"></div>
+      <div class="field">
+        <label>Ecuación / Fórmula Química</label>
+        <div class="chem-eq-container">
+          <input type="text" class="chem-eq-input" id="chemEquation" placeholder="Ej: H2SO4, NaOH, Ca(OH)2, 2H2+O2->2H2O" oninput="updateChemPreview();updatePreview()" autocomplete="off">
+          <div class="chem-eq-preview" id="chemPreview"></div>
+          <div class="chem-eq-hint">Escribí la fórmula normalmente. Los números se convierten en subíndices automáticamente. Usá -> para flechas de reacción, ^ para superíndices (ej: Fe^3+).</div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field"><label>Concentración</label><input type="text" id="concentration" placeholder="Ej: 37%" oninput="updatePreview()"></div>
+        <div class="field" id="casField">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+            <label style="margin-bottom:0;">N° CAS</label>
+            <div class="toggle-row" style="margin-bottom:0;">
+              <span class="toggle-label" onclick="toggleCas()">Mostrar</span>
+              <div class="toggle-switch active" id="casToggle" onclick="toggleCas()"></div>
+            </div>
+          </div>
+          <input type="text" id="casNumber" placeholder="Ej: 7647-01-0" oninput="updatePreview()">
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><div class="section-number">3</div><div class="section-title">Palabra de Advertencia</div></div>
+      <div class="section-hint">Segun el SGA, cada producto tiene una <strong>palabra de advertencia</strong>: <strong>PELIGRO</strong> (para los mas graves) o <strong>ATENCION</strong> (para peligros menores). Esta informacion se encuentra en la <strong>Ficha de Datos de Seguridad (FDS/SDS)</strong> del producto.</div>
+      <div class="field">
+        <select id="signalWord" onchange="updatePreview()">
+          <option value="">— Sin palabra de advertencia —</option>
+          <option value="PELIGRO">PELIGRO</option>
+          <option value="ATENCIÓN">ATENCIÓN</option>
+        </select>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><div class="section-number">4</div><div class="section-title">Pictogramas de Peligro</div></div>
+      <div class="section-hint">Los pictogramas son los <strong>rombos rojos con simbolos</strong> que indican el tipo de peligro. Hace clic en los que correspondan a tu producto (podes seleccionar varios). Encontralos en la <strong>seccion 2</strong> de la Ficha de Datos de Seguridad (FDS).</div>
+      <div class="picto-grid" id="pictoGrid"></div>
+    </div>
+    <div class="section">
+      <div class="section-header"><div class="section-number">5</div><div class="section-title">Indicaciones de Peligro (Frases H)</div></div>
+      <div class="section-hint">Las <strong>frases H</strong> (Hazard) describen los peligros del producto. Ej: <strong>H314</strong> = "Provoca quemaduras graves". Podes buscar por codigo o por palabra clave, o <strong>pegar una lista</strong> de codigos copiados de la FDS. Estan en la <strong>seccion 2</strong> de la FDS.</div>
+      <div class="phrase-mode-row">
+        <span style="font-size:10px;color:var(--text3);">En etiqueta:</span>
+        <button class="phrase-mode-btn" id="hModeCode" onclick="setHPhraseMode('code')">Solo código</button>
+        <button class="phrase-mode-btn active" id="hModeFull" onclick="setHPhraseMode('full')">Frase completa</button>
+      </div>
+      <div class="phrase-search-container">
+        <svg class="phrase-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="text" class="phrase-search-input" id="hSearch" placeholder="Buscar: H314, quemadura, tóxico, inhalación..." oninput="filterPhrases('h')" onfocus="openDropdown('h')" autocomplete="off">
+        <div class="phrase-dropdown" id="hDropdown"></div>
+      </div>
+      <div class="selected-phrases" id="hSelected"><div class="no-phrases">No se han agregado frases H</div></div>
+      <textarea class="paste-area" id="hPaste" placeholder="Pegar frases H aquí: ej. H314, H331, H335 o H314+H331" rows="1" oninput="parsePastedPhrases('h')"></textarea>
+      <div class="paste-hint">Pegá códigos separados por comas, espacios o +. Se detectan automáticamente.</div>
+    </div>
+    <div class="section">
+      <div class="section-header"><div class="section-number">6</div><div class="section-title">Consejos de Prudencia (Frases P)</div></div>
+      <div class="section-hint">Las <strong>frases P</strong> (Precaution) son las medidas de seguridad recomendadas. Ej: <strong>P280</strong> = "Usar guantes/ropa de proteccion". Tambien estan en la <strong>seccion 2</strong> de la FDS. Podes pegar una lista de codigos.</div>
+      <div class="phrase-mode-row">
+        <span style="font-size:10px;color:var(--text3);">En etiqueta:</span>
+        <button class="phrase-mode-btn" id="pModeCode" onclick="setPPhraseMode('code')">Solo código</button>
+        <button class="phrase-mode-btn active" id="pModeFull" onclick="setPPhraseMode('full')">Frase completa</button>
+      </div>
+      <div class="phrase-search-container">
+        <svg class="phrase-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="text" class="phrase-search-input" id="pSearch" placeholder="Buscar: P280, guantes, ventilación, almacenar..." oninput="filterPhrases('p')" onfocus="openDropdown('p')" autocomplete="off">
+        <div class="phrase-dropdown" id="pDropdown"></div>
+      </div>
+      <div class="selected-phrases" id="pSelected"><div class="no-phrases">No se han agregado frases P</div></div>
+      <textarea class="paste-area" id="pPaste" placeholder="Pegar frases P aquí: ej. P260, P280, P305+P351+P338" rows="1" oninput="parsePastedPhrases('p')"></textarea>
+      <div class="paste-hint">Pegá códigos separados por comas, espacios o +. Se detectan automáticamente.</div>
+    </div>
+    <div class="section">
+      <div class="section-header">
+        <div class="section-number">7</div>
+        <div class="section-title">Proveedor / Fabricante</div>
+
+        <div class="toggle-row" style="margin-bottom:0;margin-left:auto;">
+          <span class="toggle-label" onclick="toggleSupplier()">En etiqueta</span>
+          <div class="toggle-switch active" id="supplierToggle" onclick="toggleSupplier()"></div>
+        </div>
+      </div>
+      <div class="section-hint">Datos del fabricante o distribuidor del producto. Si no lo necesitas en la etiqueta, desactiva el toggle <strong>"En etiqueta"</strong>.</div>
+      <div id="supplierFields">
+        <div class="field"><label>Nombre</label><input type="text" id="supplierName" placeholder="Ej: Droguería Industrial S.A." oninput="updatePreview()"></div>
+        <div class="row">
+          <div class="field"><label>Dirección</label><input type="text" id="supplierAddress" placeholder="Av. Italia 1234, Montevideo" oninput="updatePreview()"></div>
+          <div class="field"><label>Teléfono</label><input type="text" id="supplierPhone" placeholder="+598 2XXX XXXX" oninput="updatePreview()"></div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><div class="section-number">8</div><div class="section-title">Tamano de Etiqueta</div></div>
+      <div class="section-hint">Elegi un <strong>tamano predefinido</strong> segun el recipiente (vial, frasco, botella, bidon) o ingresa medidas personalizadas en milimetros. La etiqueta se adapta automaticamente al tamano elegido.</div>
+      <div class="size-presets">
+        <button class="size-preset" data-w="40" data-h="30" onclick="setSize(40,30,this)">Vial 40×30</button>
+        <button class="size-preset" data-w="60" data-h="40" onclick="setSize(60,40,this)">Frasco chico 60×40</button>
+        <button class="size-preset active" data-w="80" data-h="60" onclick="setSize(80,60,this)">Frasco med. 80×60</button>
+        <button class="size-preset" data-w="100" data-h="70" onclick="setSize(100,70,this)">Frasco grande 100×70</button>
+        <button class="size-preset" data-w="148" data-h="105" onclick="setSize(148,105,this)">Botella A6</button>
+        <button class="size-preset" data-w="210" data-h="148" onclick="setSize(210,148,this)">Bidón A5</button>
+      </div>
+      <div class="row-3">
+        <div class="field"><label>Ancho (mm)</label><input type="number" id="labelWidth" value="80" min="20" max="300" oninput="updateSizeFromInput()"></div>
+        <div class="field"><label>Alto (mm)</label><input type="number" id="labelHeight" value="60" min="20" max="300" oninput="updateSizeFromInput()"></div>
+        <div class="field"><label>Copias</label><input type="number" id="labelCopies" value="1" min="1" max="100"></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><div class="section-number">9</div><div class="section-title">Personalizar Tamaños</div></div>
+      <div class="section-hint">Ajustá el tamaño de cada elemento de la etiqueta. <strong>100%</strong> = tamaño de fábrica optimizado. Estos ajustes se guardan con tu proyecto.</div>
+      <div class="size-editor" id="sizeEditor"></div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="btn btn-secondary" onclick="resetSzMul()" style="font-size:11px;padding:6px 14px;">Restablecer de fábrica</button>
+      </div>
+    </div>
+  </div>
+  <div class="panel panel-preview">
+    <div class="preview-header">
+      <div class="preview-title">Vista Previa</div>
+      <div class="preview-zoom">
+        <button onclick="zoomOut()">−</button>
+        <span id="zoomLevel">100%</span>
+        <button onclick="zoomIn()">+</button>
+        <button onclick="zoomFit()" title="Ajustar" style="font-size:11px;">&#x2291;</button>
+      </div>
+    </div>
+    <div class="preview-container" id="previewContainer">
+      <div class="label-wrapper" id="labelWrapper">
+        <div class="label" id="labelPreview"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<div class="modal-overlay" id="helpModal" onclick="if(event.target===this)closeHelp()">
+  <div class="modal" style="max-width:720px;">
+    <button class="modal-close" onclick="closeHelp()">&times;</button>
+    <h2>Guia completa: Generador de Etiquetas SGA/GHS</h2>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.6;">Esta herramienta te permite crear <strong>etiquetas de seguridad</strong> para los productos quimicos de tu laboratorio, siguiendo el <strong>Sistema Globalmente Armonizado (SGA/GHS)</strong>, que es el estandar internacional obligatorio para la comunicacion de peligros quimicos.</p>
+
+    <div class="tip-box"><strong>Tip:</strong> Toda la informacion que necesitas para llenar la etiqueta esta en la <strong>Ficha de Datos de Seguridad (FDS o SDS)</strong> del producto quimico. Si no la tenes, busca en internet el nombre del producto + "ficha de seguridad" o "SDS".</div>
+
+    <h3>Paso a paso</h3>
+
+    <div class="step-box">
+      <h4><span class="step-num">1</span> Institucion</h4>
+      <p>Escribi el nombre de tu colegio o laboratorio. Aparece como encabezado en la parte superior de la etiqueta.</p>
+    </div>
+
+    <div class="step-box">
+      <h4><span class="step-num">2</span> Identificacion del Producto</h4>
+      <p><strong>Nombre:</strong> El nombre comercial o cientifico del producto (ej: "Acido Clorhidrico", "Etanol").</p>
+      <p><strong>Formula quimica:</strong> Escribila normalmente y se convierte sola. Ejemplos:</p>
+      <div class="example-block">
+        H2SO4 &rarr; H&#8322;SO&#8324;<br>
+        NaOH &rarr; NaOH<br>
+        Ca(OH)2 &rarr; Ca(OH)&#8322;<br>
+        Fe^3+ &rarr; Fe&#179;&#8314; (superindice)<br>
+        2H2+O2->2H2O &rarr; 2H&#8322;+O&#8322; &rarr; 2H&#8322;O
+      </div>
+      <p><strong>Concentracion:</strong> El porcentaje o concentracion (ej: "37%", "0.1 M").</p>
+      <p><strong>N° CAS:</strong> Identificador universal del producto quimico. Se puede desactivar con el interruptor si no lo necesitas.</p>
+    </div>
+
+    <div class="step-box">
+      <h4><span class="step-num">3</span> Palabra de Advertencia</h4>
+      <p>Segun la clasificacion del producto, elegir:</p>
+      <p><strong style="color:#cc0000;">PELIGRO</strong> &mdash; Para productos con peligros mas graves (ej: toxico, corrosivo fuerte).</p>
+      <p><strong style="color:#e68a00;">ATENCION</strong> &mdash; Para productos con peligros menores (ej: irritante, nocivo).</p>
+      <p>Esta informacion esta en la <strong>seccion 2</strong> de la FDS.</p>
+    </div>
+
+    <div class="step-box">
+      <h4><span class="step-num">4</span> Pictogramas de Peligro</h4>
+      <p>Los pictogramas son los <strong>rombos rojos con simbolos negros</strong> que indican visualmente el tipo de peligro. Hace clic en los que correspondan (podes seleccionar varios). Los mas comunes en laboratorios escolares:</p>
+      <ul style="margin:6px 0 0 16px;">
+        <li><strong>GHS02 (Llama):</strong> Productos inflamables como etanol, acetona.</li>
+        <li><strong>GHS05 (Corrosion):</strong> Acidos y bases fuertes como HCl, NaOH.</li>
+        <li><strong>GHS07 (Signo !):</strong> Irritantes, nocivos. Muy comun en laboratorio.</li>
+        <li><strong>GHS09 (Medio ambiente):</strong> Toxico para organismos acuaticos.</li>
+      </ul>
+    </div>
+
+    <div class="step-box">
+      <h4><span class="step-num">5</span> Frases H (Indicaciones de Peligro)</h4>
+      <p>Las frases H describen los peligros especificos. Hay <strong>dos formas</strong> de agregarlas:</p>
+      <p><strong>a) Buscador:</strong> Escribi el codigo (H314) o una palabra clave ("quemadura", "toxico") y hace clic en la frase para agregarla.</p>
+      <p><strong>b) Pegar codigos:</strong> Copia los codigos de la FDS y pegalos en el campo "Pegar frases H aqui". El sistema los detecta automaticamente.</p>
+      <div class="example-block">Ejemplo de pegado: H314, H331, H335<br>Tambien funciona: H314+H331 H335<br>O simplemente: H314 H331 H335</div>
+      <p>Podes elegir entre mostrar <kbd>Solo codigo</kbd> (ej: H314) o <kbd>Frase completa</kbd> (ej: H314: Provoca quemaduras graves...).</p>
+    </div>
+
+    <div class="step-box">
+      <h4><span class="step-num">6</span> Frases P (Consejos de Prudencia)</h4>
+      <p>Funcionan igual que las frases H. Las frases P indican <strong>que hacer</strong> para protegerse. Ej: P280 = "Usar guantes", P305+P351+P338 = "Lavar ojos con agua".</p>
+    </div>
+
+    <div class="step-box">
+      <h4><span class="step-num">7</span> Proveedor</h4>
+      <p>Datos del fabricante o distribuidor. Si no lo necesitas, desactivalo con el interruptor "En etiqueta" y la etiqueta aprovecha ese espacio.</p>
+    </div>
+
+    <div class="step-box">
+      <h4><span class="step-num">8</span> Tamano de Etiqueta</h4>
+      <p>Elegi un tamano predefinido segun tu recipiente o pone medidas personalizadas en milimetros:</p>
+      <ul style="margin:4px 0 0 16px;">
+        <li><strong>Vial 40x30:</strong> Para tubos de ensayo y viales pequenos.</li>
+        <li><strong>Frasco chico 60x40:</strong> Frascos de 50-100 ml.</li>
+        <li><strong>Frasco med. 80x60:</strong> Frascos de 250-500 ml (recomendado).</li>
+        <li><strong>Frasco grande 100x70:</strong> Frascos de 1 litro.</li>
+        <li><strong>Botella A6 / Bidon A5:</strong> Recipientes grandes y bidones.</li>
+      </ul>
+      <p>En etiquetas chicas, las frases se abrevian automaticamente a solo codigos para que entre todo.</p>
+    </div>
+
+    <h3>Vista previa y zoom</h3>
+    <p>El panel derecho muestra la etiqueta en tiempo real. Usa los botones <kbd>+</kbd> <kbd>-</kbd> para hacer zoom y el boton <kbd>&#x2291;</kbd> para ajustar al tamano de la ventana.</p>
+
+    <h3>Guardar, exportar e imprimir</h3>
+    <div class="step-box">
+      <h4>Botones de la barra superior</h4>
+      <ul style="margin:4px 0 0 16px;">
+        <li><strong>? Ayuda:</strong> Abre esta guia.</li>
+        <li><strong>Ejemplo:</strong> Carga un ejemplo completo (Acido Clorhidrico) para que veas como funciona.</li>
+        <li><strong>Imagen:</strong> Descarga la etiqueta como imagen PNG de alta calidad, lista para imprimir o enviar.</li>
+        <li><strong>Excel:</strong> Exporta todos los datos a un archivo CSV que se abre en Excel, Google Sheets o LibreOffice.</li>
+        <li><strong>Guardar:</strong> Guarda tu trabajo en un archivo JSON y en el cache del navegador.</li>
+        <li><strong>Cargar:</strong> Abre un proyecto guardado previamente.</li>
+        <li><strong>Limpiar:</strong> Borra todos los campos para empezar de nuevo.</li>
+        <li><strong>Imprimir:</strong> Envia la etiqueta a la impresora. Configura el numero de copias en la seccion 8.</li>
+      </ul>
+    </div>
+
+    <div class="tip-box"><strong>Tip:</strong> Tu trabajo se guarda automaticamente en el navegador cada 5 segundos. Si cerras y volves a abrir la pagina, todo tu progreso se recupera solo.</div>
+
+    <h3>Que es el SGA/GHS?</h3>
+    <p>El <strong>Sistema Globalmente Armonizado (SGA)</strong>, conocido internacionalmente como <strong>GHS</strong> (Globally Harmonized System), es un sistema estandarizado de la ONU para clasificar y comunicar los peligros de los productos quimicos. Es obligatorio en Uruguay y en la mayoria de los paises.</p>
+    <p>Una etiqueta SGA contiene: nombre del producto, pictogramas de peligro, palabra de advertencia, frases H y P, e informacion del proveedor. Este generador te ayuda a crear esas etiquetas facilmente.</p>
+
+    <div class="warn-box"><strong>Importante:</strong> Este generador es una herramienta educativa de apoyo. Siempre verifica la informacion con la <strong>Ficha de Datos de Seguridad (FDS)</strong> oficial del producto quimico.</div>
+  </div>
+</div>
+<script>
+const PICTOGRAMS=[
+{id:'GHS01',name:'Explosivo',svg:'<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><polygon points="50,2 98,50 50,98 2,50" fill="#fff" stroke="#ff0000" stroke-width="3"/><g transform="translate(25,22) scale(0.5)"><circle cx="50" cy="60" r="18" fill="#000"/><path d="M32,60 L15,30 M50,42 L45,15 M68,60 L85,30 M40,48 L25,20 M60,48 L75,20 M35,55 L10,50 M65,55 L90,50" stroke="#000" stroke-width="4" stroke-linecap="round"/></g></svg>'},
+{id:'GHS02',name:'Inflamable',svg:'<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><polygon points="50,2 98,50 50,98 2,50" fill="#fff" stroke="#ff0000" stroke-width="3"/><path d="M50,20 C50,20 38,38 38,52 C38,60 42,68 50,72 C46,64 48,56 54,50 C54,50 56,58 60,62 C64,66 62,72 50,78 C62,78 72,68 72,56 C72,40 50,20 50,20Z" fill="#000"/></svg>'},
+{id:'GHS03',name:'Comburente',svg:'<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><polygon points="50,2 98,50 50,98 2,50" fill="#fff" stroke="#ff0000" stroke-width="3"/><g transform="translate(28,22) scale(0.44)"><circle cx="50" cy="75" r="25" fill="#000"/><path d="M50,15 C50,15 30,35 35,55 C38,65 45,70 50,50 C55,70 62,65 65,55 C70,35 50,15 50,15Z" fill="#000"/></g></svg>'},
+{id:'GHS04',name:'Gas a presión',svg:'<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><polygon points="50,2 98,50 50,98 2,50" fill="#fff" stroke="#ff0000" stroke-width="3"/><g transform="translate(30,24) scale(0.4)"><rect x="30" y="20" width="40" height="70" rx="10" fill="none" stroke="#000" stroke-width="7"/><line x1="40" y1="20" x2="40" y2="10" stroke="#000" stroke-width="5"/><line x1="60" y1="20" x2="60" y2="10" stroke="#000" stroke-width="5"/><rect x="35" y="5" width="30" height="8" rx="3" fill="#000"/></g></svg>'},
+{id:'GHS05',name:'Corrosivo',svg:'<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><polygon points="50,2 98,50 50,98 2,50" fill="#fff" stroke="#ff0000" stroke-width="3"/><g transform="translate(24,20) scale(0.52)"><path d="M35,25 L45,25 L42,50 L55,30 L55,25 L65,25 L62,50 C62,50 70,55 70,65 C70,78 60,85 50,85 C40,85 30,78 30,65 C30,55 38,50 35,25Z" fill="#000"/><path d="M25,60 L35,50 L32,70 Z" fill="#000"/></g></svg>'},
+{id:'GHS06',name:'Toxicidad aguda',svg:'<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><polygon points="50,2 98,50 50,98 2,50" fill="#fff" stroke="#ff0000" stroke-width="3"/><g transform="translate(25,18) scale(0.5)"><circle cx="50" cy="30" r="16" fill="#000"/><rect x="46" y="46" width="8" height="30" fill="#000"/><line x1="30" y1="52" x2="70" y2="52" stroke="#000" stroke-width="8" stroke-linecap="round"/><line x1="38" y1="76" x2="50" y2="70" stroke="#000" stroke-width="8" stroke-linecap="round"/><line x1="62" y1="76" x2="50" y2="70" stroke="#000" stroke-width="8" stroke-linecap="round"/></g></svg>'},
+{id:'GHS07',name:'Irritante/Nocivo',svg:'<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><polygon points="50,2 98,50 50,98 2,50" fill="#fff" stroke="#ff0000" stroke-width="3"/><g transform="translate(27,27) scale(0.46)"><line x1="50" y1="10" x2="50" y2="35" stroke="#000" stroke-width="10" stroke-linecap="round"/><line x1="50" y1="65" x2="50" y2="90" stroke="#000" stroke-width="10" stroke-linecap="round"/><line x1="10" y1="50" x2="35" y2="50" stroke="#000" stroke-width="10" stroke-linecap="round"/><line x1="65" y1="50" x2="90" y2="50" stroke="#000" stroke-width="10" stroke-linecap="round"/><line x1="22" y1="22" x2="38" y2="38" stroke="#000" stroke-width="8" stroke-linecap="round"/><line x1="62" y1="62" x2="78" y2="78" stroke="#000" stroke-width="8" stroke-linecap="round"/><line x1="78" y1="22" x2="62" y2="38" stroke="#000" stroke-width="8" stroke-linecap="round"/><line x1="22" y1="78" x2="38" y2="62" stroke="#000" stroke-width="8" stroke-linecap="round"/><circle cx="50" cy="50" r="8" fill="#000"/></g></svg>'},
+{id:'GHS08',name:'Peligro salud',svg:'<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><polygon points="50,2 98,50 50,98 2,50" fill="#fff" stroke="#ff0000" stroke-width="3"/><g transform="translate(26,24) scale(0.48)"><path d="M50,10 L30,40 L35,40 L25,60 L35,60 L20,90 L80,90 L65,60 L75,60 L65,40 L70,40 Z" fill="none" stroke="#000" stroke-width="5"/><line x1="50" y1="75" x2="50" y2="82" stroke="#000" stroke-width="6" stroke-linecap="round"/><line x1="50" y1="50" x2="50" y2="65" stroke="#000" stroke-width="6" stroke-linecap="round"/></g></svg>'},
+{id:'GHS09',name:'Medio ambiente',svg:'<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><polygon points="50,2 98,50 50,98 2,50" fill="#fff" stroke="#ff0000" stroke-width="3"/><g transform="translate(24,22) scale(0.52)"><ellipse cx="50" cy="80" rx="30" ry="8" fill="#000"/><path d="M30,60 C30,60 35,40 50,35 C50,35 40,50 45,60" fill="#000"/><path d="M55,50 C55,50 60,30 75,25 C75,25 65,45 70,55" fill="#000"/><path d="M20,70 Q50,55 80,70" stroke="#000" stroke-width="3" fill="none"/></g></svg>'}
+];
+
+const H_PHRASES=[
+{code:"H200",text:"Explosivo inestable.",cat:"Peligros físicos"},
+{code:"H201",text:"Explosivo; peligro de explosión en masa.",cat:"Peligros físicos"},
+{code:"H202",text:"Explosivo; grave peligro de proyección.",cat:"Peligros físicos"},
+{code:"H203",text:"Explosivo; peligro de incendio, de onda expansiva o de proyección.",cat:"Peligros físicos"},
+{code:"H204",text:"Peligro de incendio o de proyección.",cat:"Peligros físicos"},
+{code:"H205",text:"Peligro de explosión en masa en caso de incendio.",cat:"Peligros físicos"},
+{code:"H220",text:"Gas extremadamente inflamable.",cat:"Peligros físicos"},
+{code:"H221",text:"Gas inflamable.",cat:"Peligros físicos"},
+{code:"H222",text:"Aerosol extremadamente inflamable.",cat:"Peligros físicos"},
+{code:"H223",text:"Aerosol inflamable.",cat:"Peligros físicos"},
+{code:"H224",text:"Líquido y vapores extremadamente inflamables.",cat:"Peligros físicos"},
+{code:"H225",text:"Líquido y vapores muy inflamables.",cat:"Peligros físicos"},
+{code:"H226",text:"Líquidos y vapores inflamables.",cat:"Peligros físicos"},
+{code:"H228",text:"Sólido inflamable.",cat:"Peligros físicos"},
+{code:"H229",text:"Recipiente a presión: puede reventar si se calienta.",cat:"Peligros físicos"},
+{code:"H230",text:"Puede reaccionar de forma explosiva incluso en ausencia de aire.",cat:"Peligros físicos"},
+{code:"H231",text:"Puede reaccionar de forma explosiva incluso en ausencia de aire a presión y/o temperatura elevadas.",cat:"Peligros físicos"},
+{code:"H240",text:"Peligro de explosión en caso de calentamiento.",cat:"Peligros físicos"},
+{code:"H241",text:"Peligro de incendio o explosión en caso de calentamiento.",cat:"Peligros físicos"},
+{code:"H242",text:"Peligro de incendio en caso de calentamiento.",cat:"Peligros físicos"},
+{code:"H250",text:"Se inflama espontáneamente en contacto con el aire.",cat:"Peligros físicos"},
+{code:"H251",text:"Se calienta espontáneamente; puede inflamarse.",cat:"Peligros físicos"},
+{code:"H252",text:"Se calienta espontáneamente en grandes cantidades; puede inflamarse.",cat:"Peligros físicos"},
+{code:"H260",text:"En contacto con el agua desprende gases inflamables que pueden inflamarse espontáneamente.",cat:"Peligros físicos"},
+{code:"H261",text:"En contacto con el agua desprende gases inflamables.",cat:"Peligros físicos"},
+{code:"H270",text:"Puede provocar o agravar un incendio; comburente.",cat:"Peligros físicos"},
+{code:"H271",text:"Puede provocar un incendio o una explosión; muy comburente.",cat:"Peligros físicos"},
+{code:"H272",text:"Puede agravar un incendio; comburente.",cat:"Peligros físicos"},
+{code:"H280",text:"Contiene gas a presión; peligro de explosión en caso de calentamiento.",cat:"Peligros físicos"},
+{code:"H281",text:"Contiene gas refrigerado; puede provocar quemaduras o lesiones criogénicas.",cat:"Peligros físicos"},
+{code:"H290",text:"Puede ser corrosivo para los metales.",cat:"Peligros físicos"},
+{code:"H300",text:"Mortal en caso de ingestión.",cat:"Peligros para la salud"},
+{code:"H301",text:"Tóxico en caso de ingestión.",cat:"Peligros para la salud"},
+{code:"H302",text:"Nocivo en caso de ingestión.",cat:"Peligros para la salud"},
+{code:"H304",text:"Puede ser mortal en caso de ingestión y penetración en las vías respiratorias.",cat:"Peligros para la salud"},
+{code:"H305",text:"Nocivo en caso de ingestión e ingreso en las vías respiratorias.",cat:"Peligros para la salud"},
+{code:"H310",text:"Mortal en contacto con la piel.",cat:"Peligros para la salud"},
+{code:"H311",text:"Tóxico en contacto con la piel.",cat:"Peligros para la salud"},
+{code:"H312",text:"Nocivo en contacto con la piel.",cat:"Peligros para la salud"},
+{code:"H314",text:"Provoca quemaduras graves en la piel y lesiones oculares graves.",cat:"Peligros para la salud"},
+{code:"H315",text:"Provoca irritación cutánea.",cat:"Peligros para la salud"},
+{code:"H317",text:"Puede provocar una reacción alérgica en la piel.",cat:"Peligros para la salud"},
+{code:"H318",text:"Provoca lesiones oculares graves.",cat:"Peligros para la salud"},
+{code:"H319",text:"Provoca irritación ocular grave.",cat:"Peligros para la salud"},
+{code:"H330",text:"Mortal en caso de inhalación.",cat:"Peligros para la salud"},
+{code:"H331",text:"Tóxico en caso de inhalación.",cat:"Peligros para la salud"},
+{code:"H332",text:"Nocivo en caso de inhalación.",cat:"Peligros para la salud"},
+{code:"H334",text:"Puede provocar síntomas de alergia o asma o dificultades respiratorias en caso de inhalación.",cat:"Peligros para la salud"},
+{code:"H335",text:"Puede irritar las vías respiratorias.",cat:"Peligros para la salud"},
+{code:"H336",text:"Puede provocar somnolencia o vértigo.",cat:"Peligros para la salud"},
+{code:"H340",text:"Puede provocar defectos genéticos.",cat:"Peligros para la salud"},
+{code:"H341",text:"Se sospecha que provoca defectos genéticos.",cat:"Peligros para la salud"},
+{code:"H350",text:"Puede provocar cáncer.",cat:"Peligros para la salud"},
+{code:"H351",text:"Se sospecha que provoca cáncer.",cat:"Peligros para la salud"},
+{code:"H360",text:"Puede perjudicar la fertilidad o dañar al feto.",cat:"Peligros para la salud"},
+{code:"H361",text:"Se sospecha que perjudica la fertilidad o daña al feto.",cat:"Peligros para la salud"},
+{code:"H362",text:"Puede perjudicar a los niños alimentados con leche materna.",cat:"Peligros para la salud"},
+{code:"H370",text:"Provoca daños en los órganos.",cat:"Peligros para la salud"},
+{code:"H371",text:"Puede provocar daños en los órganos.",cat:"Peligros para la salud"},
+{code:"H372",text:"Provoca daños en los órganos tras exposiciones prolongadas o repetidas.",cat:"Peligros para la salud"},
+{code:"H373",text:"Puede provocar daños en los órganos tras exposiciones prolongadas o repetidas.",cat:"Peligros para la salud"},
+{code:"H300+H310",text:"Mortal en caso de ingestión o en contacto con la piel.",cat:"Combinados"},
+{code:"H300+H330",text:"Mortal en caso de ingestión o inhalación.",cat:"Combinados"},
+{code:"H310+H330",text:"Mortal en contacto con la piel o en caso de inhalación.",cat:"Combinados"},
+{code:"H300+H310+H330",text:"Mortal en caso de ingestión, contacto con la piel o inhalación.",cat:"Combinados"},
+{code:"H301+H311",text:"Tóxico en caso de ingestión o en contacto con la piel.",cat:"Combinados"},
+{code:"H301+H331",text:"Tóxico en caso de ingestión o inhalación.",cat:"Combinados"},
+{code:"H301+H311+H331",text:"Tóxico en caso de ingestión, contacto con la piel o inhalación.",cat:"Combinados"},
+{code:"H311+H331",text:"Tóxico en contacto con la piel o en caso de inhalación.",cat:"Combinados"},
+{code:"H302+H312",text:"Nocivo en caso de ingestión o en contacto con la piel.",cat:"Combinados"},
+{code:"H302+H332",text:"Nocivo en caso de ingestión o inhalación.",cat:"Combinados"},
+{code:"H302+H312+H332",text:"Nocivo en caso de ingestión, contacto con la piel o inhalación.",cat:"Combinados"},
+{code:"H312+H332",text:"Nocivo en contacto con la piel o si se inhala.",cat:"Combinados"},
+{code:"H400",text:"Muy tóxico para los organismos acuáticos.",cat:"Medio ambiente"},
+{code:"H410",text:"Muy tóxico para los organismos acuáticos, con efectos nocivos duraderos.",cat:"Medio ambiente"},
+{code:"H411",text:"Tóxico para los organismos acuáticos, con efectos nocivos duraderos.",cat:"Medio ambiente"},
+{code:"H412",text:"Nocivo para los organismos acuáticos, con efectos nocivos duraderos.",cat:"Medio ambiente"},
+{code:"H413",text:"Puede ser nocivo para los organismos acuáticos, con efectos nocivos duraderos.",cat:"Medio ambiente"},
+{code:"H420",text:"Daña la salud pública y el medio ambiente al destruir el ozono en la atmósfera superior.",cat:"Medio ambiente"}
+];
+
+const P_PHRASES=[
+{code:"P101",text:"Si se necesita consejo médico, tener a mano el envase o la etiqueta.",cat:"General"},
+{code:"P102",text:"Mantener fuera del alcance de los niños.",cat:"General"},
+{code:"P103",text:"Leer la etiqueta antes del uso.",cat:"General"},
+{code:"P201",text:"Solicitar instrucciones especiales antes del uso.",cat:"Prevención"},
+{code:"P202",text:"No manipular antes de haber leído y comprendido todas las instrucciones de seguridad.",cat:"Prevención"},
+{code:"P210",text:"Mantener alejado del calor, de superficies calientes, de chispas, de llamas abiertas y de cualquier otra fuente de ignición. No fumar.",cat:"Prevención"},
+{code:"P211",text:"No pulverizar sobre una llama abierta u otra fuente de ignición.",cat:"Prevención"},
+{code:"P220",text:"Mantener alejado de la ropa y de otros materiales combustibles.",cat:"Prevención"},
+{code:"P222",text:"No dejar que entre en contacto con el aire.",cat:"Prevención"},
+{code:"P223",text:"Mantener alejado de cualquier posible contacto con el agua.",cat:"Prevención"},
+{code:"P230",text:"Mantener humedecido con...",cat:"Prevención"},
+{code:"P231",text:"Manipular y almacenar el contenido en atmósfera de gas inerte.",cat:"Prevención"},
+{code:"P232",text:"Proteger de la humedad.",cat:"Prevención"},
+{code:"P233",text:"Mantener el recipiente herméticamente cerrado.",cat:"Prevención"},
+{code:"P234",text:"Conservar únicamente en el recipiente original.",cat:"Prevención"},
+{code:"P235",text:"Mantener en lugar fresco.",cat:"Prevención"},
+{code:"P240",text:"Conectar a tierra/enlace equipotencial del recipiente y del equipo de recepción.",cat:"Prevención"},
+{code:"P241",text:"Utilizar material eléctrico, de ventilación o de iluminación antideflagrante.",cat:"Prevención"},
+{code:"P242",text:"Utilizar únicamente herramientas que no produzcan chispas.",cat:"Prevención"},
+{code:"P243",text:"Tomar medidas de precaución contra descargas electrostáticas.",cat:"Prevención"},
+{code:"P244",text:"Mantener las válvulas de reducción limpias de grasa y aceite.",cat:"Prevención"},
+{code:"P250",text:"No someter a trituración, choque, fricción.",cat:"Prevención"},
+{code:"P251",text:"No perforar ni quemar, aun después del uso.",cat:"Prevención"},
+{code:"P260",text:"No respirar el polvo/el humo/el gas/la niebla/los vapores/el aerosol.",cat:"Prevención"},
+{code:"P261",text:"Evitar respirar el polvo/el humo/el gas/la niebla/los vapores/el aerosol.",cat:"Prevención"},
+{code:"P262",text:"Evitar el contacto con los ojos, la piel o la ropa.",cat:"Prevención"},
+{code:"P263",text:"Evitar el contacto durante el embarazo y la lactancia.",cat:"Prevención"},
+{code:"P264",text:"Lavarse concienzudamente tras la manipulación.",cat:"Prevención"},
+{code:"P270",text:"No comer, beber ni fumar durante su utilización.",cat:"Prevención"},
+{code:"P271",text:"Utilizar únicamente en exteriores o en un lugar bien ventilado.",cat:"Prevención"},
+{code:"P272",text:"Las prendas de trabajo contaminadas no podrán sacarse del lugar de trabajo.",cat:"Prevención"},
+{code:"P273",text:"Evitar su liberación al medio ambiente.",cat:"Prevención"},
+{code:"P280",text:"Llevar guantes/prendas/gafas/máscara de protección.",cat:"Prevención"},
+{code:"P282",text:"Llevar guantes que aíslen del frío y gafas o máscara de protección.",cat:"Prevención"},
+{code:"P283",text:"Llevar prendas ignífugas o resistentes al fuego.",cat:"Prevención"},
+{code:"P284",text:"En caso de ventilación insuficiente, llevar equipo de protección respiratoria.",cat:"Prevención"},
+{code:"P301+P310",text:"EN CASO DE INGESTIÓN: Llamar inmediatamente a un CENTRO DE TOXICOLOGÍA/médico.",cat:"Intervención"},
+{code:"P301+P312",text:"EN CASO DE INGESTIÓN: Llamar a un CENTRO DE TOXICOLOGÍA/médico en caso de malestar.",cat:"Intervención"},
+{code:"P301+P330+P331",text:"EN CASO DE INGESTIÓN: Enjuagarse la boca. NO provocar el vómito.",cat:"Intervención"},
+{code:"P302+P334",text:"EN CASO DE CONTACTO CON LA PIEL: Sumergir en agua fresca/aplicar compresas húmedas.",cat:"Intervención"},
+{code:"P302+P352",text:"EN CASO DE CONTACTO CON LA PIEL: Lavar con abundante agua.",cat:"Intervención"},
+{code:"P303+P361+P353",text:"EN CASO DE CONTACTO CON LA PIEL (o el pelo): Quitar todas las prendas contaminadas. Aclararse la piel con agua/ducharse.",cat:"Intervención"},
+{code:"P304+P340",text:"EN CASO DE INHALACIÓN: Transportar a la persona al aire libre y mantenerla en posición que le facilite la respiración.",cat:"Intervención"},
+{code:"P304+P341",text:"EN CASO DE INHALACIÓN: Si respira con dificultad, transportar al aire libre y mantener en reposo.",cat:"Intervención"},
+{code:"P305+P351+P338",text:"EN CASO DE CONTACTO CON LOS OJOS: Aclarar cuidadosamente con agua durante varios minutos. Quitar las lentes de contacto si resulta fácil. Seguir aclarando.",cat:"Intervención"},
+{code:"P306+P360",text:"EN CASO DE CONTACTO CON LA ROPA: Aclarar inmediatamente con abundante agua antes de quitarse la ropa.",cat:"Intervención"},
+{code:"P308+P311",text:"EN CASO DE EXPOSICIÓN MANIFIESTA O PRESUNTA: Llamar a un CENTRO DE TOXICOLOGÍA/médico.",cat:"Intervención"},
+{code:"P308+P313",text:"EN CASO DE EXPOSICIÓN MANIFIESTA O PRESUNTA: Consultar a un médico.",cat:"Intervención"},
+{code:"P310",text:"Llamar inmediatamente a un CENTRO DE TOXICOLOGÍA/médico.",cat:"Intervención"},
+{code:"P311",text:"Llamar a un CENTRO DE TOXICOLOGÍA/médico.",cat:"Intervención"},
+{code:"P312",text:"Llamar a un CENTRO DE TOXICOLOGÍA/médico en caso de malestar.",cat:"Intervención"},
+{code:"P313",text:"Consultar a un médico.",cat:"Intervención"},
+{code:"P314",text:"Consultar a un médico en caso de malestar.",cat:"Intervención"},
+{code:"P315",text:"Consultar a un médico inmediatamente.",cat:"Intervención"},
+{code:"P320",text:"Se necesita urgentemente un tratamiento específico (véase ... en esta etiqueta).",cat:"Intervención"},
+{code:"P321",text:"Tratamiento específico (véase ... en esta etiqueta).",cat:"Intervención"},
+{code:"P330",text:"Enjuagarse la boca.",cat:"Intervención"},
+{code:"P331",text:"NO provocar el vómito.",cat:"Intervención"},
+{code:"P336",text:"Descongelar las partes heladas con agua tibia. No frotar la zona afectada.",cat:"Intervención"},
+{code:"P332+P313",text:"En caso de irritación cutánea: Consultar a un médico.",cat:"Intervención"},
+{code:"P333+P313",text:"En caso de irritación o erupción cutánea: Consultar a un médico.",cat:"Intervención"},
+{code:"P337+P313",text:"Si persiste la irritación ocular: Consultar a un médico.",cat:"Intervención"},
+{code:"P338",text:"Quitar las lentes de contacto, si lleva y resulta fácil. Seguir aclarando.",cat:"Intervención"},
+{code:"P340",text:"Transportar a la persona al aire libre y mantenerla en posición que le facilite la respiración.",cat:"Intervención"},
+{code:"P342+P311",text:"En caso de síntomas respiratorios: Llamar a un CENTRO DE TOXICOLOGÍA/médico.",cat:"Intervención"},
+{code:"P351",text:"Aclarar cuidadosamente con agua durante varios minutos.",cat:"Intervención"},
+{code:"P352",text:"Lavar con abundante agua.",cat:"Intervención"},
+{code:"P353",text:"Aclararse la piel con agua/ducharse.",cat:"Intervención"},
+{code:"P360",text:"Aclarar inmediatamente con abundante agua las prendas y la piel contaminadas antes de quitarse la ropa.",cat:"Intervención"},
+{code:"P361",text:"Quitar inmediatamente todas las prendas contaminadas.",cat:"Intervención"},
+{code:"P362",text:"Quitar las prendas contaminadas.",cat:"Intervención"},
+{code:"P363",text:"Lavar las prendas contaminadas antes de volver a usarlas.",cat:"Intervención"},
+{code:"P370+P378",text:"En caso de incendio: Utilizar... para la extinción.",cat:"Intervención"},
+{code:"P370+P380+P375",text:"En caso de incendio: Evacuar la zona. Combatir el incendio a distancia.",cat:"Intervención"},
+{code:"P371+P380+P375",text:"En caso de incendio importante: Evacuar la zona. Combatir el incendio a distancia debido al riesgo de explosión.",cat:"Intervención"},
+{code:"P376",text:"Detener la fuga, si no hay peligro en hacerlo.",cat:"Intervención"},
+{code:"P377",text:"Fuga de gas en llamas: No apagar, salvo si la fuga puede detenerse sin peligro.",cat:"Intervención"},
+{code:"P378",text:"Utilizar ... para la extinción.",cat:"Intervención"},
+{code:"P380",text:"Evacuar la zona.",cat:"Intervención"},
+{code:"P381",text:"En caso de fuga, eliminar todas las fuentes de ignición.",cat:"Intervención"},
+{code:"P390",text:"Absorber el vertido para que no dañe otros materiales.",cat:"Intervención"},
+{code:"P391",text:"Recoger el vertido.",cat:"Intervención"},
+{code:"P401",text:"Almacenar de conformidad con...",cat:"Almacenamiento"},
+{code:"P402",text:"Almacenar en un lugar seco.",cat:"Almacenamiento"},
+{code:"P403",text:"Almacenar en un lugar bien ventilado.",cat:"Almacenamiento"},
+{code:"P404",text:"Almacenar en un recipiente cerrado.",cat:"Almacenamiento"},
+{code:"P405",text:"Guardar bajo llave.",cat:"Almacenamiento"},
+{code:"P406",text:"Almacenar en un recipiente resistente a la corrosión.",cat:"Almacenamiento"},
+{code:"P407",text:"Dejar una separación entre los bloques/las paletas.",cat:"Almacenamiento"},
+{code:"P410",text:"Proteger de la luz del sol.",cat:"Almacenamiento"},
+{code:"P411",text:"Almacenar a temperaturas no superiores a ...°C.",cat:"Almacenamiento"},
+{code:"P412",text:"No exponer a temperaturas superiores a 50 °C.",cat:"Almacenamiento"},
+{code:"P413",text:"Almacenar cantidades a granel superiores a ... kg a temperaturas no superiores a ...°C.",cat:"Almacenamiento"},
+{code:"P420",text:"Almacenar alejado de otros materiales.",cat:"Almacenamiento"},
+{code:"P402+P404",text:"Almacenar en un lugar seco. Almacenar en un recipiente cerrado.",cat:"Almacenamiento"},
+{code:"P403+P233",text:"Almacenar en un lugar bien ventilado. Mantener el recipiente herméticamente cerrado.",cat:"Almacenamiento"},
+{code:"P403+P235",text:"Almacenar en un lugar bien ventilado. Mantener en lugar fresco.",cat:"Almacenamiento"},
+{code:"P410+P403",text:"Proteger de la luz del sol. Almacenar en un lugar bien ventilado.",cat:"Almacenamiento"},
+{code:"P410+P412",text:"Proteger de la luz del sol. No exponer a temperaturas superiores a 50 °C.",cat:"Almacenamiento"},
+{code:"P411+P235",text:"Almacenar a temperaturas no superiores a ...°C. Mantener en lugar fresco.",cat:"Almacenamiento"},
+{code:"P501",text:"Eliminar el contenido/el recipiente en un punto de recogida de residuos peligrosos.",cat:"Eliminación"},
+{code:"P502",text:"Consultar al fabricante/proveedor para obtener información sobre su recuperación/reciclado.",cat:"Eliminación"},
+{code:"P503",text:"Consultar al fabricante/proveedor para obtener información sobre su eliminación/reciclado/devolución.",cat:"Eliminación"}
+];
+
+let selectedPictos=new Set(),selectedH=[],selectedP=[],labelW=80,labelH_=60,zoom=1;
+let showCas=true,showSupplier=true,hPhraseMode='full',pPhraseMode='full';
+let szMul={inst:100,instSub:100,title:100,formula:100,subtitle:100,signal:100,sec:100,body:100,foot:100,picto:100};
+var SIZE_EDITOR_ITEMS=[
+{key:'title',label:'Nombre producto',group:'Encabezado'},
+{key:'formula',label:'Fórmula química'},
+{key:'subtitle',label:'Concentración / CAS'},
+{key:'inst',label:'Institución'},
+{key:'instSub',label:'Subtítulo institución'},
+{key:'signal',label:'Palabra advertencia',group:'Peligro'},
+{key:'sec',label:'Títulos sección (H/P)'},
+{key:'body',label:'Texto frases H/P'},
+{key:'picto',label:'Pictogramas',group:'Elementos visuales'},
+{key:'foot',label:'Proveedor / pie'}
+];
+
+function parseChemFormula(input){
+  if(!input)return '';
+  var html=input;
+  html=html.replace(/->/g,' \u2192 ');
+  html=html.replace(/<->/g,' \u21CC ');
+  html=html.replace(/\^(\d*[+\-])/g,'<sup>$1</sup>');
+  html=html.replace(/\^(\{[^}]+\})/g,function(m,g){return '<sup>'+g.slice(1,-1)+'</sup>'});
+  html=html.replace(/([A-Za-z)\]])(\d+)/g,'$1<sub>$2</sub>');
+  html=html.replace(/\·/g,'\u00B7');
+  return html;
+}
+
+function updateChemPreview(){
+  var input=document.getElementById('chemEquation').value;
+  document.getElementById('chemPreview').innerHTML=input?parseChemFormula(input):'<span style="color:var(--text3);font-size:12px;">La vista previa de la fórmula aparece aquí</span>';
+}
+
+function toggleCas(){
+  showCas=!showCas;
+  var toggle=document.getElementById('casToggle');
+  var casInput=document.getElementById('casNumber');
+  if(showCas){toggle.classList.add('active');casInput.style.display=''}
+  else{toggle.classList.remove('active');casInput.style.display='none'}
+  updatePreview();
+}
+
+function toggleSupplier(){
+  showSupplier=!showSupplier;
+  var toggle=document.getElementById('supplierToggle');
+  var fields=document.getElementById('supplierFields');
+  if(showSupplier){toggle.classList.add('active');fields.style.display=''}
+  else{toggle.classList.remove('active');fields.style.display='none'}
+  updatePreview();
+}
+
+function setHPhraseMode(mode){
+  hPhraseMode=mode;
+  document.getElementById('hModeCode').classList.toggle('active',mode==='code');
+  document.getElementById('hModeFull').classList.toggle('active',mode==='full');
+  updatePreview();
+}
+
+function setPPhraseMode(mode){
+  pPhraseMode=mode;
+  document.getElementById('pModeCode').classList.toggle('active',mode==='code');
+  document.getElementById('pModeFull').classList.toggle('active',mode==='full');
+  updatePreview();
+}
+
+function init(){renderPictoGrid();renderSizeEditor();updateChemPreview();updatePreview();setTimeout(zoomFit,100);document.addEventListener('click',e=>{if(!e.target.closest('.phrase-search-container'))document.querySelectorAll('.phrase-dropdown').forEach(d=>d.classList.remove('open'))});if(localStorage.getItem('sga_welcome_dismissed')==='1'){var wb=document.getElementById('welcomeBanner');if(wb)wb.style.display='none'}}
+
+function renderPictoGrid(){document.getElementById('pictoGrid').innerHTML=PICTOGRAMS.map(p=>'<div class="picto-item" id="picto-'+p.id+'" onclick="togglePicto(\''+p.id+'\')"><div class="picto-check"><svg width="10" height="10" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="2,5 4.5,8 8,2.5"/></svg></div><img src="'+p.id+'.png" alt="'+p.name+'"><div class="picto-label">'+p.name+'</div></div>').join('')}
+
+function togglePicto(id){if(selectedPictos.has(id))selectedPictos.delete(id);else selectedPictos.add(id);document.getElementById('picto-'+id).classList.toggle('selected');updatePreview()}
+
+function filterPhrases(type){
+  var input=document.getElementById(type==='h'?'hSearch':'pSearch');
+  var dropdown=document.getElementById(type==='h'?'hDropdown':'pDropdown');
+  var db=type==='h'?H_PHRASES:P_PHRASES;
+  var selected=type==='h'?selectedH:selectedP;
+  var query=input.value.toLowerCase().trim();
+  if(query.length<1){dropdown.classList.remove('open');return}
+  var selectedCodes=new Set(selected.map(function(s){return s.code}));
+  var matches=db.filter(function(item){
+    if(selectedCodes.has(item.code))return false;
+    var searchStr=(item.code+' '+item.text).toLowerCase();
+    var words=query.split(/\s+/);
+    return words.every(function(w){return searchStr.includes(w)});
+  }).slice(0,30);
+  if(matches.length===0){dropdown.innerHTML='<div style="padding:12px;color:var(--text3);font-size:12px;text-align:center;">No se encontraron frases</div>';dropdown.classList.add('open');return}
+  var html='',lastCat='';
+  matches.forEach(function(m){
+    if(m.cat!==lastCat){lastCat=m.cat;html+='<div class="phrase-category-header">'+m.cat+'</div>'}
+    var cc=type==='h'?'h-code':'p-code';
+    html+='<div class="phrase-option" onclick="addPhrase(\''+type+"','"+m.code.replace(/'/g,"\\'")+"')\"><span class=\"phrase-option-code "+cc+"\">"+m.code+"</span><span class=\"phrase-option-text\">"+m.text+"</span></div>";
+  });
+  dropdown.innerHTML=html;dropdown.classList.add('open');
+}
+
+function openDropdown(type){var input=document.getElementById(type==='h'?'hSearch':'pSearch');if(input.value.trim().length>0)filterPhrases(type)}
+
+function addPhrase(type,code){
+  var db=type==='h'?H_PHRASES:P_PHRASES;
+  var selected=type==='h'?selectedH:selectedP;
+  var phrase=db.find(function(p){return p.code===code});
+  if(!phrase||selected.find(function(s){return s.code===code}))return;
+  selected.push({code:phrase.code,text:phrase.text,cat:phrase.cat});
+  var input=document.getElementById(type==='h'?'hSearch':'pSearch');
+  var dropdown=document.getElementById(type==='h'?'hDropdown':'pDropdown');
+  input.value='';dropdown.classList.remove('open');
+  renderSelectedPhrases(type);updatePreview();input.focus();
+}
+
+function removePhrase(type,code){
+  if(type==='h')selectedH=selectedH.filter(function(p){return p.code!==code});
+  else selectedP=selectedP.filter(function(p){return p.code!==code});
+  renderSelectedPhrases(type);updatePreview();
+}
+
+function renderSelectedPhrases(type){
+  var container=document.getElementById(type==='h'?'hSelected':'pSelected');
+  var selected=type==='h'?selectedH:selectedP;
+  var tagClass=type==='h'?'h-tag':'p-tag';
+  if(selected.length===0){container.innerHTML='<div class="no-phrases">No se han agregado frases '+type.toUpperCase()+'</div>';return}
+  container.innerHTML=selected.map(function(p){
+    return '<div class="phrase-tag '+tagClass+'"><span class="phrase-tag-code">'+p.code+'</span><span class="phrase-tag-text" title="'+p.text.replace(/"/g,'&quot;')+'">'+p.text+'</span><button class="phrase-tag-remove" onclick="removePhrase(\''+type+"','"+p.code.replace(/'/g,"\\'")+"')\"><svg width=\"10\" height=\"10\" viewBox=\"0 0 10 10\"><path d=\"M2,2 L8,8 M8,2 L2,8\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\"/></svg></button></div>";
+  }).join('');
+}
+
+function setSize(w,h,btn){labelW=w;labelH_=h;document.getElementById('labelWidth').value=w;document.getElementById('labelHeight').value=h;document.querySelectorAll('.size-preset').forEach(function(b){b.classList.remove('active')});if(btn)btn.classList.add('active');updatePreview();setTimeout(zoomFit,50)}
+function updateSizeFromInput(){labelW=parseInt(document.getElementById('labelWidth').value)||80;labelH_=parseInt(document.getElementById('labelHeight').value)||60;document.querySelectorAll('.size-preset').forEach(function(b){b.classList.remove('active')});updatePreview();setTimeout(zoomFit,50)}
+function setZoom(z){zoom=Math.max(.2,Math.min(3,z));document.getElementById('labelWrapper').style.transform='scale('+zoom+')';document.getElementById('zoomLevel').textContent=Math.round(zoom*100)+'%'}
+function zoomIn(){setZoom(zoom+.15)}
+function zoomOut(){setZoom(zoom-.15)}
+function zoomFit(){var c=document.getElementById('previewContainer');setZoom(Math.min((c.clientWidth-40)/(labelW*3.78),(c.clientHeight-40)/(labelH_*3.78),2.5))}
+
+/* ===== ESTRATEGIA CLÁSICA (frascos medianos, grandes, A6, A5) ===== */
+
+function classicGetFontSizes(w,h){
+  var a=w*h;
+  if(a<4000)return{inst:6,title:8,signal:7,sec:5.5,body:5,foot:4.5};
+  if(a<8000)return{inst:7,title:9.5,signal:8.5,sec:6,body:5.5,foot:5};
+  if(a<16000)return{inst:9,title:12.5,signal:11,sec:7,body:7,foot:6};
+  return{inst:11.5,title:17,signal:15,sec:9.5,body:8.5,foot:7.5};
+}
+
+function classicGetPictoSize(fs,w){
+  var nPictos=selectedPictos.size||1;
+  return Math.min(labelH_*0.40,(w*0.90)/nPictos)*szMul.picto/100;
+}
+
+function classicGetPhraseMode(type){
+  var userMode=type==='h'?hPhraseMode:pPhraseMode;
+  if(userMode==='code')return 'code';
+  var area=labelW*labelH_;var count=type==='h'?selectedH.length:selectedP.length;
+  if(area<6000&&count>3)return 'code';
+  if(area<8000&&count>5)return 'code';
+  return userMode;
+}
+
+function classicUpdatePreview(){
+  var inst=document.getElementById('institutionName').value;
+  var name=document.getElementById('productName').value||'Nombre del Producto';
+  var cas=document.getElementById('casNumber').value;
+  var conc=document.getElementById('concentration').value;
+  var chemEq=document.getElementById('chemEquation').value;
+  var signal=document.getElementById('signalWord').value;
+  var suppName=document.getElementById('supplierName').value;
+  var suppAddr=document.getElementById('supplierAddress').value;
+  var suppPhone=document.getElementById('supplierPhone').value;
+  var fs=classicGetFontSizes(labelW,labelH_);
+  var pxW=labelW*3.78,pxH=labelH_*3.78;
+  var label=document.getElementById('labelPreview');
+  label.className='label label-classic';
+  label.style.width=pxW+'px';label.style.height=pxH+'px';label.style.padding='';
+  var sm=szMul;
+  var instSub=document.getElementById('institutionSubtitle').value;
+  var instHTML='';
+  if(inst){instHTML='<div class="label-institution" style="font-size:'+(fs.inst*sm.inst/100)+'pt;">'+inst+(instSub?'<div style="font-size:'+(fs.inst*0.78*sm.instSub/100)+'pt;font-weight:500;text-transform:none;letter-spacing:0;color:#333;margin-top:0.2mm;">'+instSub+'</div>':'')+'</div>'}
+  var sub=[];if(showCas&&cas)sub.push('CAS: '+cas);if(conc)sub.push(conc);
+  var subHTML=sub.length?'<div style="font-size:'+(fs.body*sm.subtitle/100)+'pt;color:#555;margin-top:0.3mm;">'+sub.join(' | ')+'</div>':'';
+  var chemHTML=chemEq?'<div style="font-size:'+(fs.title*0.75*sm.formula/100)+'pt;color:#333;margin-top:0.3mm;font-family:serif;">'+parseChemFormula(chemEq)+'</div>':'';
+  var sigHTML=signal?'<div class="label-signal-word '+(signal==='PELIGRO'?'signal-peligro':'signal-atencion')+'" style="font-size:'+(fs.signal*sm.signal/100)+'pt;">'+signal+'</div>':'';
+  var pictosHTML='';
+  var pictoSz=classicGetPictoSize(fs,labelW);
+  if(selectedPictos.size>0){var imgs=PICTOGRAMS.filter(function(p){return selectedPictos.has(p.id)}).map(function(p){return '<img src="'+p.id+'.png" alt="'+p.name+'" style="width:'+pictoSz+'mm;height:'+pictoSz+'mm;">'}).join('');pictosHTML='<div class="label-pictograms">'+imgs+'</div>'}
+  var hMode=classicGetPhraseMode('h');
+  var hazHTML='';
+  if(selectedH.length>0){var lines=selectedH.map(function(p){return hMode==='code'?p.code:p.code+': '+p.text}).join(hMode==='code'?', ':'<br>');hazHTML='<div><div class="label-section-title" style="font-size:'+(fs.sec*sm.sec/100)+'pt;">Indicaciones de Peligro</div><div class="label-text" style="font-size:'+(fs.body*sm.body/100)+'pt;">'+lines+'</div></div>'}
+  var pMode=classicGetPhraseMode('p');
+  var precHTML='';
+  if(selectedP.length>0){var lines2=selectedP.map(function(p){return pMode==='code'?p.code:p.code+': '+p.text}).join(pMode==='code'?', ':'<br>');precHTML='<div><div class="label-section-title" style="font-size:'+(fs.sec*sm.sec/100)+'pt;">Consejos de Prudencia</div><div class="label-text" style="font-size:'+(fs.body*sm.body/100)+'pt;">'+lines2+'</div></div>'}
+  var footHTML='';
+  if(showSupplier){var fp=[];if(suppName)fp.push('<strong>'+suppName+'</strong>');if(suppAddr)fp.push(suppAddr);if(suppPhone)fp.push('Tel: '+suppPhone);footHTML=fp.length?'<div class="label-footer"><div class="label-supplier" style="font-size:'+(fs.foot*sm.foot/100)+'pt;">'+fp.join(' &middot; ')+'</div></div>':''}
+  label.innerHTML=instHTML+'<div class="label-top"><div><div class="label-product-name" style="font-size:'+(fs.title*sm.title/100)+'pt;">'+name+'</div>'+subHTML+chemHTML+'</div>'+sigHTML+'</div>'+pictosHTML+'<div class="label-body">'+hazHTML+precHTML+'</div>'+footHTML;
+}
+
+/* ===== ESTRATEGIA COMPACTA (vial, frasco chico) ===== */
+
+function compactBaseFonts(){
+  return{inst:4,title:5.5,signal:4.5,body:3,foot:2.5,picto:5};
+}
+
+function scaleFonts(fs,s){
+  return{inst:fs.inst*s,title:fs.title*s,signal:fs.signal*s,body:fs.body*s,foot:fs.foot*s,picto:fs.picto*s};
+}
+
+function compactGetPictoSize(fs,w,h){
+  var nPictos=selectedPictos.size||1;
+  return Math.max(1.5,Math.min(h*0.40,(w*0.90)/nPictos))*szMul.picto/100;
+}
+
+function compactBuildHTML(fs,g){
+  var inst=document.getElementById('institutionName').value;
+  var name=document.getElementById('productName').value||'Nombre del Producto';
+  var cas=document.getElementById('casNumber').value;
+  var conc=document.getElementById('concentration').value;
+  var chemEq=document.getElementById('chemEquation').value;
+  var signal=document.getElementById('signalWord').value;
+  var suppName=document.getElementById('supplierName').value;
+  var suppAddr=document.getElementById('supplierAddress').value;
+  var suppPhone=document.getElementById('supplierPhone').value;
+  var sm=szMul;
+  var html='';
+  var instSub=document.getElementById('institutionSubtitle').value;
+  if(inst)html+='<div style="font-size:'+(fs.inst*sm.inst/100)+'pt;font-weight:700;text-align:center;text-transform:uppercase;line-height:1.05;border-bottom:0.5px solid #cc0000;padding-bottom:'+g+'mm;margin-bottom:'+g+'mm;">'+inst+(instSub?'<div style="font-size:'+(fs.inst*0.78*sm.instSub/100)+'pt;font-weight:500;text-transform:none;letter-spacing:0;color:#333;">'+instSub+'</div>':'')+'</div>';
+  html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:'+g+'mm;margin-bottom:'+g+'mm;"><div><div style="font-size:'+(fs.title*sm.title/100)+'pt;font-weight:700;line-height:1.05;">'+name+'</div>';
+  var sub=[];if(showCas&&cas)sub.push('CAS:'+cas);if(conc)sub.push(conc);
+  if(sub.length)html+='<div style="font-size:'+(fs.body*sm.subtitle/100)+'pt;color:#555;">'+sub.join(' | ')+'</div>';
+  if(chemEq)html+='<div style="font-size:'+(fs.body*1.1*sm.formula/100)+'pt;color:#333;font-family:serif;">'+parseChemFormula(chemEq)+'</div>';
+  html+='</div>';
+  if(signal)html+='<div style="font-size:'+(fs.signal*sm.signal/100)+'pt;font-weight:700;color:'+(signal==='PELIGRO'?'#cc0000':'#e68a00')+';">'+signal+'</div>';
+  html+='</div>';
+  var pictoSz=compactGetPictoSize(fs,labelW,labelH_);
+  if(selectedPictos.size>0){var imgs=PICTOGRAMS.filter(function(p){return selectedPictos.has(p.id)}).map(function(p){return '<img src="'+p.id+'.png" alt="'+p.name+'" style="width:'+pictoSz+'mm;height:'+pictoSz+'mm;">'}).join('');html+='<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:'+g*0.5+'mm;margin:'+g*0.5+'mm 0;">'+imgs+'</div>'}
+  if(selectedH.length>0){var codes=selectedH.map(function(p){return p.code});html+='<div style="font-size:'+(fs.body*sm.body/100)+'pt;line-height:1.1;"><b>H:</b> '+codes.join(', ')+'</div>'}
+  if(selectedP.length>0){var codes2=selectedP.map(function(p){return p.code});html+='<div style="font-size:'+(fs.body*sm.body/100)+'pt;line-height:1.1;"><b>P:</b> '+codes2.join(', ')+'</div>'}
+  if(showSupplier){var fp=[];if(suppName)fp.push('<b>'+suppName+'</b>');if(suppAddr)fp.push(suppAddr);if(suppPhone)fp.push('Tel:'+suppPhone);if(fp.length)html+='<div style="font-size:'+(fs.foot*sm.foot/100)+'pt;color:#333;border-top:0.5px solid #ccc;padding-top:'+g*0.5+'mm;margin-top:auto;line-height:1.1;">'+fp.join(' &middot; ')+'</div>'}
+  return html;
+}
+
+function compactUpdatePreview(){
+  var pxW=labelW*3.78,pxH=labelH_*3.78;
+  var label=document.getElementById('labelPreview');
+  label.className='label label-compact';
+  var minDim=Math.min(labelW,labelH_);
+  var pad=Math.max(0.4,minDim*0.035);
+  var gap=Math.max(0.1,minDim*0.015);
+  var base=compactBaseFonts();
+  var lo=0.3,hi=2.5,best=1.0;
+  for(var i=0;i<12;i++){
+    var mid=(lo+hi)/2;
+    var fs=scaleFonts(base,mid);
+    label.style.width=pxW+'px';label.style.height=pxH+'px';
+    label.style.padding=pad+'mm';
+    label.innerHTML=compactBuildHTML(fs,gap);
+    if(label.scrollHeight<=label.clientHeight+1){best=mid;lo=mid}else{hi=mid}
+  }
+  var fs=scaleFonts(base,best);
+  label.style.width=pxW+'px';label.style.height=pxH+'px';
+  label.style.padding=pad+'mm';
+  label.innerHTML=compactBuildHTML(fs,gap);
+}
+
+/* ===== DISPATCHER ===== */
+
+function updatePreview(){
+  if(labelW*labelH_<4000) compactUpdatePreview();
+  else classicUpdatePreview();
+}
+
+function printLabel(){
+  var copies=parseInt(document.getElementById('labelCopies').value)||1;
+  var wrapper=document.getElementById('labelWrapper');
+  var original=document.getElementById('labelPreview');
+  var clones=[];
+  for(var i=1;i<copies;i++){var clone=original.cloneNode(true);clone.id='';wrapper.appendChild(clone);clones.push(clone)}
+  window.print();clones.forEach(function(c){c.remove()});showToast('Etiqueta enviada a impresión');
+}
+
+function resetForm(){
+  ['institutionName','institutionSubtitle','productName','casNumber','concentration','chemEquation','supplierName','supplierAddress','supplierPhone'].forEach(function(id){document.getElementById(id).value=''});
+  document.getElementById('signalWord').value='';
+  document.getElementById('hSearch').value='';document.getElementById('pSearch').value='';
+  selectedPictos.clear();selectedH=[];selectedP=[];
+  showCas=true;document.getElementById('casToggle').classList.add('active');document.getElementById('casNumber').style.display='';
+  showSupplier=true;document.getElementById('supplierToggle').classList.add('active');document.getElementById('supplierFields').style.display='';
+  hPhraseMode='full';pPhraseMode='full';
+  document.getElementById('hModeCode').classList.remove('active');document.getElementById('hModeFull').classList.add('active');
+  document.getElementById('pModeCode').classList.remove('active');document.getElementById('pModeFull').classList.add('active');
+  document.querySelectorAll('.picto-item').forEach(function(el){el.classList.remove('selected')});
+  renderSelectedPhrases('h');renderSelectedPhrases('p');
+  document.getElementById('chemPreview').innerHTML='';
+  Object.keys(szMul).forEach(function(k){szMul[k]=100});
+  renderSizeEditor();
+  setSize(80,60,document.querySelector('[data-w="80"]'));updatePreview();
+}
+
+function loadExample(){
+  document.getElementById('institutionName').value='Colegio y Liceo Hans Christian Andersen';
+  document.getElementById('institutionSubtitle').value='Laboratorio de Química';
+  document.getElementById('productName').value='Ácido Clorhídrico';
+  document.getElementById('casNumber').value='7647-01-0';
+  document.getElementById('concentration').value='37%';
+  document.getElementById('chemEquation').value='HCl';
+  updateChemPreview();
+  document.getElementById('signalWord').value='PELIGRO';
+  document.getElementById('supplierName').value='Droguería Industrial S.A.';
+  document.getElementById('supplierAddress').value='Av. Italia 1234, Montevideo';
+  document.getElementById('supplierPhone').value='+598 2XXX XXXX';
+  selectedPictos.clear();document.querySelectorAll('.picto-item').forEach(function(el){el.classList.remove('selected')});
+  ['GHS05','GHS06','GHS07'].forEach(function(id){selectedPictos.add(id);document.getElementById('picto-'+id).classList.add('selected')});
+  selectedH=[H_PHRASES.find(function(p){return p.code==='H314'}),H_PHRASES.find(function(p){return p.code==='H331'}),H_PHRASES.find(function(p){return p.code==='H335'})].filter(Boolean);
+  selectedP=[P_PHRASES.find(function(p){return p.code==='P260'}),P_PHRASES.find(function(p){return p.code==='P280'}),P_PHRASES.find(function(p){return p.code==='P305+P351+P338'}),P_PHRASES.find(function(p){return p.code==='P310'})].filter(Boolean);
+  renderSelectedPhrases('h');renderSelectedPhrases('p');
+  setSize(100,70,document.querySelector('[data-w="100"]'));updatePreview();showToast('Ejemplo cargado: Ácido Clorhídrico');
+}
+
+function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2500)}
+
+/* ===== PEGAR FRASES H/P ===== */
+
+function parsePastedPhrases(type){
+  var textarea=document.getElementById(type==='h'?'hPaste':'pPaste');
+  var raw=textarea.value.toUpperCase();
+  var db=type==='h'?H_PHRASES:P_PHRASES;
+  var selected=type==='h'?selectedH:selectedP;
+  var existingCodes=new Set(selected.map(function(s){return s.code}));
+  var pattern=type==='h'?/H\d{3}(?:\+H\d{3})*/g:/P\d{3}(?:\+P\d{3}(?:\+P\d{3})?)?/g;
+  var matches=raw.match(pattern);
+  if(!matches)return;
+  var added=0;
+  matches.forEach(function(code){
+    if(existingCodes.has(code))return;
+    var phrase=db.find(function(p){return p.code===code});
+    if(phrase){selected.push({code:phrase.code,text:phrase.text,cat:phrase.cat});existingCodes.add(code);added++}
+  });
+  if(added>0){
+    textarea.value='';
+    renderSelectedPhrases(type);updatePreview();
+    showToast(added+' frase'+(added>1?'s':'')+' '+type.toUpperCase()+' agregada'+(added>1?'s':''));
+  }
+}
+
+/* ===== EDITOR DE TAMAÑOS ===== */
+
+function renderSizeEditor(){
+  var container=document.getElementById('sizeEditor');
+  if(!container)return;
+  var html='';
+  SIZE_EDITOR_ITEMS.forEach(function(item){
+    var val=szMul[item.key];
+    if(item.group)html+='<div class="size-editor-group">'+item.group+'</div>';
+    html+='<div class="size-editor-row">'+
+      '<span class="size-editor-label" title="'+item.label+'">'+item.label+'</span>'+
+      '<input type="range" min="50" max="250" step="5" value="'+val+'" '+
+        'oninput="updateSzMul(\''+item.key+'\',this.value)" '+
+        'class="size-editor-range" id="szRange_'+item.key+'">'+
+      '<div class="size-editor-val">'+
+        '<input type="number" min="50" max="250" step="5" value="'+val+'" '+
+          'onchange="updateSzMul(\''+item.key+'\',this.value)" '+
+          'class="size-editor-num" id="szNum_'+item.key+'">'+
+        '<span class="size-editor-pct">%</span>'+
+      '</div>'+
+    '</div>';
+  });
+  container.innerHTML=html;
+}
+
+function updateSzMul(key,val){
+  val=Math.max(50,Math.min(250,parseInt(val)||100));
+  szMul[key]=val;
+  var range=document.getElementById('szRange_'+key);
+  var num=document.getElementById('szNum_'+key);
+  if(range)range.value=val;
+  if(num)num.value=val;
+  updatePreview();
+}
+
+function resetSzMul(){
+  Object.keys(szMul).forEach(function(k){szMul[k]=100});
+  renderSizeEditor();
+  updatePreview();
+  showToast('Tamaños restablecidos a valores de fábrica');
+}
+
+/* ===== GUARDAR IMAGEN ===== */
+
+function saveImage(){
+  var label=document.getElementById('labelPreview');
+  if(!label||!label.innerHTML){showToast('Primero genera una etiqueta');return}
+  var wrapper=document.getElementById('labelWrapper');
+  var originalTransform=wrapper.style.transform;
+  wrapper.style.transform='none';
+
+  // Wait a frame for the transform reset to take effect
+  requestAnimationFrame(function(){
+    if(typeof html2canvas==='undefined'){
+      wrapper.style.transform=originalTransform;
+      saveImageCanvasFallback(label,labelW*3.78,labelH_*3.78);
+      return;
+    }
+
+    // Clone the label into a temporary off-screen container for clean capture
+    var tempDiv=document.createElement('div');
+    tempDiv.style.cssText='position:fixed;left:-9999px;top:0;z-index:-1;background:#fff;';
+    var clone=label.cloneNode(true);
+    clone.style.transform='none';
+    tempDiv.appendChild(clone);
+    document.body.appendChild(tempDiv);
+
+    html2canvas(clone,{
+      scale:3,
+      useCORS:true,
+      allowTaint:true,
+      backgroundColor:'#ffffff',
+      logging:false
+    }).then(function(canvas){
+      document.body.removeChild(tempDiv);
+      wrapper.style.transform=originalTransform;
+      var dataURL=canvas.toDataURL('image/png');
+      var a=document.createElement('a');
+      a.href=dataURL;
+      a.download='etiqueta_'+((document.getElementById('productName').value||'producto').replace(/\s+/g,'_'))+'.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showToast('Imagen PNG descargada');
+    }).catch(function(err){
+      document.body.removeChild(tempDiv);
+      wrapper.style.transform=originalTransform;
+      console.error('Error captura imagen:', err);
+      saveImageCanvasFallback(label,labelW*3.78,labelH_*3.78);
+    });
+  });
+}
+
+function saveImageCanvasFallback(label,pxW,pxH){
+  var scale=3;
+  var canvas=document.createElement('canvas');
+  canvas.width=pxW*scale;canvas.height=pxH*scale;
+  var ctx=canvas.getContext('2d');
+  ctx.scale(scale,scale);
+  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,pxW,pxH);
+  ctx.strokeStyle='#cc0000';ctx.lineWidth=2;ctx.strokeRect(1,1,pxW-2,pxH-2);
+
+  var y=8;var lh=12;
+  ctx.fillStyle='#000';ctx.font='bold 10px Arial';ctx.textAlign='left';
+  var inst=document.getElementById('institutionName').value;
+  if(inst){ctx.textAlign='center';ctx.fillText(inst,pxW/2,y);y+=lh;ctx.textAlign='left'}
+  var name=document.getElementById('productName').value||'Producto';
+  ctx.font='bold 12px Arial';ctx.fillText(name,6,y);y+=lh;
+  var cas=document.getElementById('casNumber').value;
+  var conc=document.getElementById('concentration').value;
+  if(cas||conc){ctx.font='8px Arial';ctx.fillStyle='#555';ctx.fillText([cas?'CAS:'+cas:'',conc].filter(Boolean).join(' | '),6,y);y+=lh*0.8;ctx.fillStyle='#000'}
+  var signal=document.getElementById('signalWord').value;
+  if(signal){ctx.font='bold 10px Arial';ctx.fillStyle=signal==='PELIGRO'?'#cc0000':'#e68a00';ctx.fillText(signal,pxW-6-ctx.measureText(signal).width,18);ctx.fillStyle='#000'}
+  ctx.font='8px Arial';
+  if(selectedH.length>0){ctx.fillText('H: '+selectedH.map(function(p){return p.code}).join(', '),6,y);y+=lh*0.8}
+  if(selectedP.length>0){ctx.fillText('P: '+selectedP.map(function(p){return p.code}).join(', '),6,y);y+=lh*0.8}
+
+  var dataURL=canvas.toDataURL('image/png');
+  var a=document.createElement('a');
+  a.href=dataURL;
+  a.download='etiqueta_'+((document.getElementById('productName').value||'producto').replace(/\s+/g,'_'))+'.png';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  showToast('Imagen descargada (calidad basica)');
+}
+
+/* ===== EXPORTAR EXCEL (CSV) ===== */
+
+function exportExcel(){
+  var rows=[
+    ['Campo','Valor'],
+    ['Institucion',document.getElementById('institutionName').value],
+    ['Subtitulo institucion',document.getElementById('institutionSubtitle').value],
+    ['Producto',document.getElementById('productName').value],
+    ['Formula Quimica',document.getElementById('chemEquation').value],
+    ['N CAS',document.getElementById('casNumber').value],
+    ['Concentracion',document.getElementById('concentration').value],
+    ['Palabra de Advertencia',document.getElementById('signalWord').value],
+    ['Pictogramas',Array.from(selectedPictos).join(', ')],
+    ['Frases H (codigos)',selectedH.map(function(p){return p.code}).join(', ')],
+    ['Frases H (texto)',selectedH.map(function(p){return p.code+': '+p.text}).join(' | ')],
+    ['Frases P (codigos)',selectedP.map(function(p){return p.code}).join(', ')],
+    ['Frases P (texto)',selectedP.map(function(p){return p.code+': '+p.text}).join(' | ')],
+    ['Proveedor - Nombre',document.getElementById('supplierName').value],
+    ['Proveedor - Direccion',document.getElementById('supplierAddress').value],
+    ['Proveedor - Telefono',document.getElementById('supplierPhone').value],
+    ['Tamano etiqueta (mm)',labelW+'x'+labelH_],
+    ['Mostrar CAS',showCas?'Si':'No'],
+    ['Mostrar Proveedor',showSupplier?'Si':'No'],
+    ['Modo Frases H',hPhraseMode],
+    ['Modo Frases P',pPhraseMode],
+    ['Multiplicadores tamaño',Object.keys(szMul).map(function(k){return k+':'+szMul[k]+'%'}).join(', ')]
+  ];
+  var bom='\uFEFF';
+  var csv=bom+rows.map(function(r){return r.map(function(c){return '"'+(c||'').replace(/"/g,'""')+'"'}).join(',')}).join('\r\n');
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='etiqueta_'+((document.getElementById('productName').value||'producto').replace(/\s+/g,'_'))+'.csv';
+  a.click();URL.revokeObjectURL(a.href);showToast('Archivo CSV/Excel descargado');
+}
+
+/* ===== GUARDAR / CARGAR PROYECTO ===== */
+
+function getProjectData(){
+  return{
+    version:1,
+    institutionName:document.getElementById('institutionName').value,
+    institutionSubtitle:document.getElementById('institutionSubtitle').value,
+    productName:document.getElementById('productName').value,
+    chemEquation:document.getElementById('chemEquation').value,
+    casNumber:document.getElementById('casNumber').value,
+    concentration:document.getElementById('concentration').value,
+    signalWord:document.getElementById('signalWord').value,
+    selectedPictos:Array.from(selectedPictos),
+    selectedH:selectedH.map(function(p){return p.code}),
+    selectedP:selectedP.map(function(p){return p.code}),
+    supplierName:document.getElementById('supplierName').value,
+    supplierAddress:document.getElementById('supplierAddress').value,
+    supplierPhone:document.getElementById('supplierPhone').value,
+    labelW:labelW,labelH:labelH_,
+    showCas:showCas,showSupplier:showSupplier,
+    hPhraseMode:hPhraseMode,pPhraseMode:pPhraseMode,
+    sizeMultipliers:JSON.parse(JSON.stringify(szMul))
+  };
+}
+
+function applyProjectData(d){
+  document.getElementById('institutionName').value=d.institutionName||'';
+  document.getElementById('institutionSubtitle').value=d.institutionSubtitle||'';
+  document.getElementById('productName').value=d.productName||'';
+  document.getElementById('chemEquation').value=d.chemEquation||'';
+  updateChemPreview();
+  document.getElementById('casNumber').value=d.casNumber||'';
+  document.getElementById('concentration').value=d.concentration||'';
+  document.getElementById('signalWord').value=d.signalWord||'';
+  selectedPictos.clear();document.querySelectorAll('.picto-item').forEach(function(el){el.classList.remove('selected')});
+  (d.selectedPictos||[]).forEach(function(id){selectedPictos.add(id);var el=document.getElementById('picto-'+id);if(el)el.classList.add('selected')});
+  selectedH=(d.selectedH||[]).map(function(c){return H_PHRASES.find(function(p){return p.code===c})}).filter(Boolean);
+  selectedP=(d.selectedP||[]).map(function(c){return P_PHRASES.find(function(p){return p.code===c})}).filter(Boolean);
+  renderSelectedPhrases('h');renderSelectedPhrases('p');
+  document.getElementById('supplierName').value=d.supplierName||'';
+  document.getElementById('supplierAddress').value=d.supplierAddress||'';
+  document.getElementById('supplierPhone').value=d.supplierPhone||'';
+  showCas=d.showCas!==false;
+  document.getElementById('casToggle').classList.toggle('active',showCas);
+  document.getElementById('casNumber').style.display=showCas?'':'none';
+  showSupplier=d.showSupplier!==false;
+  document.getElementById('supplierToggle').classList.toggle('active',showSupplier);
+  document.getElementById('supplierFields').style.display=showSupplier?'':'none';
+  hPhraseMode=d.hPhraseMode||'full';pPhraseMode=d.pPhraseMode||'full';
+  document.getElementById('hModeCode').classList.toggle('active',hPhraseMode==='code');
+  document.getElementById('hModeFull').classList.toggle('active',hPhraseMode==='full');
+  document.getElementById('pModeCode').classList.toggle('active',pPhraseMode==='code');
+  document.getElementById('pModeFull').classList.toggle('active',pPhraseMode==='full');
+  if(d.sizeMultipliers){
+    Object.keys(szMul).forEach(function(k){szMul[k]=d.sizeMultipliers[k]!=null?d.sizeMultipliers[k]:100});
+  }else{Object.keys(szMul).forEach(function(k){szMul[k]=100})}
+  renderSizeEditor();
+  setSize(d.labelW||80,d.labelH||60,document.querySelector('[data-w="'+(d.labelW||80)+'"]'));
+  updatePreview();
+}
+
+function saveProject(){
+  var data=getProjectData();
+  localStorage.setItem('sga_project',JSON.stringify(data));
+  var json=JSON.stringify(data,null,2);
+  var blob=new Blob([json],{type:'application/json'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='etiqueta_'+((document.getElementById('productName').value||'proyecto').replace(/\s+/g,'_'))+'.json';
+  a.click();URL.revokeObjectURL(a.href);
+  showToast('Proyecto guardado (archivo + cache)');
+}
+
+function loadProjectFile(event){
+  var file=event.target.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{var d=JSON.parse(e.target.result);applyProjectData(d);showToast('Proyecto cargado: '+(d.productName||'sin nombre'))}
+    catch(err){showToast('Error: archivo no valido')}
+  };
+  reader.readAsText(file);event.target.value='';
+}
+
+function autoSave(){
+  try{localStorage.setItem('sga_project',JSON.stringify(getProjectData()))}catch(e){}
+}
+
+function autoLoad(){
+  try{
+    var saved=localStorage.getItem('sga_project');
+    if(saved){var d=JSON.parse(saved);if(d.productName||d.institutionName){applyProjectData(d);return true}}
+  }catch(e){}
+  return false;
+}
+
+/* ===== AYUDA ===== */
+
+function openHelp(){document.getElementById('helpModal').classList.add('open')}
+function closeHelp(){document.getElementById('helpModal').classList.remove('open')}
+
+/* ===== INIT ===== */
+
+window.addEventListener('DOMContentLoaded',function(){
+  init();
+  if(!autoLoad())updatePreview();
+  setInterval(autoSave,5000);
+});
+window.addEventListener('resize',function(){setTimeout(zoomFit,100)});
+</script>
+</body>
+</html>
